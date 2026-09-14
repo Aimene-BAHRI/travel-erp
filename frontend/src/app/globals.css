@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@media print {
+  .receipt-sheet {
+    width: 100%;
+    max-width: 186mm;
+    margin: 0 auto;
+    padding: 0;
+  }
+  .receipt-sheet > * {
+    margin-block: 0 !important;
+  }
+  .receipt-sheet > .border-dashed {
+    margin-block: 3mm !important;
+  }
+  .receipt-slip {
+    padding: 3mm;
+    font-size: 9pt;
+    line-height: 1.25;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .receipt-slip > .mt-3 {
+    margin-top: 2mm;
+  }
+  .receipt-slip > .grid {
+    gap: 1mm 3mm;
+  }
+  .receipt-slip > .flex {
+    padding-bottom: 2mm;
+  }
+  .receipt-slip > section {
+    padding: 2mm;
+  }
+  .receipt-slip .text-2xl {
+    font-size: 16pt;
+    line-height: 1.2;
+  }
+  .receipt-slip .text-sm {
+    font-size: 9pt;
+    line-height: 1.25;
+  }
+  .receipt-slip .text-xs {
+    font-size: 8.5pt;
+    line-height: 1.25;
+  }
+  .receipt-slip td,
+  .receipt-slip th,
+  .receipt-slip .p-2 {
+    padding: 1mm 2mm;
+  }
+  .receipt-slip footer {
+    margin-top: 4mm;
+    padding-bottom: 15mm;
+    break-inside: avoid;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body {
+    background: white;
+  }
+  .invoice-document {
+    width: 100% !important;
+  }
+  .invoice-document-break {
+    break-before: page;
+    page-break-before: always;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

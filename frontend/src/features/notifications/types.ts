@@ -1,0 +1,1 @@
+export type NotificationRecord = { id:string; event:string; severity?: "SUCCESS" | "INFO" | "WARNING" | "ERROR"; title:string; message:string; target_url:string; read_at:string|null; resolved_at:string|null; created_at:string };
