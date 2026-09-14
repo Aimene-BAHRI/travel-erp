@@ -1,0 +1,5221 @@
+openapi: 3.0.3
+info:
+  title: Travel ERP API
+  version: 1.0.0
+  description: Tenant-isolated API for the Travel ERP.
+paths:
+  /api/v1/accounts/permissions/:
+    get:
+      operationId: api_v1_accounts_permissions_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPermissionList'
+          description: ''
+  /api/v1/accounts/permissions/{id}/:
+    get:
+      operationId: api_v1_accounts_permissions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this permission.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
+          description: ''
+  /api/v1/accounts/roles/:
+    get:
+      operationId: api_v1_accounts_roles_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRoleList'
+          description: ''
+    post:
+      operationId: api_v1_accounts_roles_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Role'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Role'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Role'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+          description: ''
+  /api/v1/accounts/roles/{id}/:
+    get:
+      operationId: api_v1_accounts_roles_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this role.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+          description: ''
+    put:
+      operationId: api_v1_accounts_roles_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this role.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Role'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Role'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Role'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+          description: ''
+    patch:
+      operationId: api_v1_accounts_roles_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this role.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRole'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRole'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRole'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+          description: ''
+    delete:
+      operationId: api_v1_accounts_roles_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this role.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/accounts/users/:
+    get:
+      operationId: api_v1_accounts_users_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserSummaryList'
+          description: ''
+    post:
+      operationId: api_v1_accounts_users_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserWrite'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWrite'
+          description: ''
+  /api/v1/accounts/users/{id}/:
+    get:
+      operationId: api_v1_accounts_users_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummary'
+          description: ''
+    put:
+      operationId: api_v1_accounts_users_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserWrite'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWrite'
+          description: ''
+    patch:
+      operationId: api_v1_accounts_users_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserWrite'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWrite'
+          description: ''
+    delete:
+      operationId: api_v1_accounts_users_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/csrf/:
+    get:
+      operationId: api_v1_auth_csrf_retrieve
+      tags:
+      - api
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Csrf'
+          description: ''
+  /api/v1/auth/login/:
+    post:
+      operationId: api_v1_auth_login_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: api_v1_auth_logout_create
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/me/:
+    get:
+      operationId: api_v1_auth_me_retrieve
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/auth/refresh/:
+    post:
+      operationId: api_v1_auth_refresh_create
+      tags:
+      - api
+      responses:
+        '204':
+          description: No response body
+  /api/v1/catalog/airlines/:
+    get:
+      operationId: api_v1_catalog_airlines_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAirlineList'
+          description: ''
+  /api/v1/catalog/airlines/{id}/:
+    get:
+      operationId: api_v1_catalog_airlines_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this airline.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Airline'
+          description: ''
+  /api/v1/catalog/hotels/:
+    get:
+      operationId: api_v1_catalog_hotels_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedHotelList'
+          description: ''
+    post:
+      operationId: api_v1_catalog_hotels_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Hotel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Hotel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Hotel'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hotel'
+          description: ''
+  /api/v1/catalog/hotels/{id}/:
+    get:
+      operationId: api_v1_catalog_hotels_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this hotel.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hotel'
+          description: ''
+    patch:
+      operationId: api_v1_catalog_hotels_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this hotel.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedHotel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedHotel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedHotel'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hotel'
+          description: ''
+  /api/v1/catalog/room-types/:
+    get:
+      operationId: api_v1_catalog_room_types_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRoomTypeList'
+          description: ''
+    post:
+      operationId: api_v1_catalog_room_types_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RoomType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RoomType'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomType'
+          description: ''
+  /api/v1/catalog/room-types/{id}/:
+    get:
+      operationId: api_v1_catalog_room_types_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this room type.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomType'
+          description: ''
+    patch:
+      operationId: api_v1_catalog_room_types_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this room type.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRoomType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRoomType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRoomType'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomType'
+          description: ''
+  /api/v1/catalog/rooms/:
+    get:
+      operationId: api_v1_catalog_rooms_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRoomList'
+          description: ''
+    post:
+      operationId: api_v1_catalog_rooms_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Room'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Room'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Room'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+          description: ''
+  /api/v1/catalog/rooms/{id}/:
+    get:
+      operationId: api_v1_catalog_rooms_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this room.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+          description: ''
+    patch:
+      operationId: api_v1_catalog_rooms_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this room.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRoom'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRoom'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRoom'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+          description: ''
+  /api/v1/catalog/suppliers/:
+    get:
+      operationId: api_v1_catalog_suppliers_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSupplierList'
+          description: ''
+    post:
+      operationId: api_v1_catalog_suppliers_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Supplier'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Supplier'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Supplier'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+          description: ''
+  /api/v1/catalog/suppliers/{id}/:
+    get:
+      operationId: api_v1_catalog_suppliers_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this supplier.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+          description: ''
+    patch:
+      operationId: api_v1_catalog_suppliers_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this supplier.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSupplier'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSupplier'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSupplier'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+          description: ''
+  /api/v1/customers/:
+    get:
+      operationId: api_v1_customers_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCustomerList'
+          description: ''
+    post:
+      operationId: api_v1_customers_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Customer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Customer'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+  /api/v1/customers/{id}/:
+    get:
+      operationId: api_v1_customers_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this customer.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    patch:
+      operationId: api_v1_customers_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this customer.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomer'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+  /api/v1/documents/:
+    get:
+      operationId: api_v1_documents_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDocumentList'
+          description: ''
+    post:
+      operationId: api_v1_documents_create
+      tags:
+      - api
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DocumentUpload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DocumentUpload'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+          description: ''
+  /api/v1/documents/{id}/:
+    get:
+      operationId: api_v1_documents_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this document.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+          description: ''
+  /api/v1/documents/{id}/download/:
+    get:
+      operationId: api_v1_documents_download_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this document.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+          description: ''
+  /api/v1/health/:
+    get:
+      operationId: api_v1_health_retrieve
+      tags:
+      - api
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/organizations/agency/:
+    get:
+      operationId: api_v1_organizations_agency_retrieve
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agency'
+          description: ''
+    put:
+      operationId: api_v1_organizations_agency_update
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Agency'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Agency'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Agency'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agency'
+          description: ''
+    patch:
+      operationId: api_v1_organizations_agency_partial_update
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAgency'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAgency'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAgency'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agency'
+          description: ''
+  /api/v1/organizations/branches/:
+    get:
+      operationId: api_v1_organizations_branches_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBranchList'
+          description: ''
+    post:
+      operationId: api_v1_organizations_branches_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Branch'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Branch'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Branch'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+          description: ''
+  /api/v1/organizations/branches/{id}/:
+    get:
+      operationId: api_v1_organizations_branches_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this branch.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+          description: ''
+    put:
+      operationId: api_v1_organizations_branches_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this branch.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Branch'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Branch'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Branch'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+          description: ''
+    patch:
+      operationId: api_v1_organizations_branches_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this branch.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBranch'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBranch'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBranch'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+          description: ''
+    delete:
+      operationId: api_v1_organizations_branches_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this branch.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/reference/agency-currencies/:
+    get:
+      operationId: api_v1_reference_agency_currencies_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAgencyCurrencyList'
+          description: ''
+    post:
+      operationId: api_v1_reference_agency_currencies_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgencyCurrency'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgencyCurrency'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgencyCurrency'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgencyCurrency'
+          description: ''
+  /api/v1/reference/agency-currencies/{id}/:
+    get:
+      operationId: api_v1_reference_agency_currencies_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this agency currency.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgencyCurrency'
+          description: ''
+    patch:
+      operationId: api_v1_reference_agency_currencies_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this agency currency.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAgencyCurrency'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAgencyCurrency'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAgencyCurrency'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgencyCurrency'
+          description: ''
+    delete:
+      operationId: api_v1_reference_agency_currencies_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this agency currency.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/reference/agency-currencies/{id}/make-accounting/:
+    post:
+      operationId: api_v1_reference_agency_currencies_make_accounting_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this agency currency.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgencyCurrency'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgencyCurrency'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgencyCurrency'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgencyCurrency'
+          description: ''
+  /api/v1/reference/cities/:
+    get:
+      operationId: api_v1_reference_cities_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCityList'
+          description: ''
+  /api/v1/reference/cities/{id}/:
+    get:
+      operationId: api_v1_reference_cities_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this city.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/City'
+          description: ''
+  /api/v1/reference/countries/:
+    get:
+      operationId: api_v1_reference_countries_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCountryList'
+          description: ''
+  /api/v1/reference/countries/{id}/:
+    get:
+      operationId: api_v1_reference_countries_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this country.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+          description: ''
+  /api/v1/reference/currencies/:
+    get:
+      operationId: api_v1_reference_currencies_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCurrencyList'
+          description: ''
+  /api/v1/reference/currencies/{code}/:
+    get:
+      operationId: api_v1_reference_currencies_retrieve
+      parameters:
+      - in: path
+        name: code
+        schema:
+          type: string
+        description: A unique value identifying this currency.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Currency'
+          description: ''
+  /api/v1/reference/passenger-categories/:
+    get:
+      operationId: api_v1_reference_passenger_categories_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPassengerCategoryList'
+          description: ''
+    post:
+      operationId: api_v1_reference_passenger_categories_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PassengerCategory'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PassengerCategory'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PassengerCategory'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassengerCategory'
+          description: ''
+  /api/v1/reference/passenger-categories/{id}/:
+    get:
+      operationId: api_v1_reference_passenger_categories_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this passenger category.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassengerCategory'
+          description: ''
+    patch:
+      operationId: api_v1_reference_passenger_categories_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this passenger category.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPassengerCategory'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPassengerCategory'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPassengerCategory'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassengerCategory'
+          description: ''
+    delete:
+      operationId: api_v1_reference_passenger_categories_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this passenger category.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/reference/payment-methods/:
+    get:
+      operationId: api_v1_reference_payment_methods_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaymentMethodList'
+          description: ''
+    post:
+      operationId: api_v1_reference_payment_methods_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentMethod'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentMethod'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentMethod'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+          description: ''
+  /api/v1/reference/payment-methods/{id}/:
+    get:
+      operationId: api_v1_reference_payment_methods_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this payment method.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+          description: ''
+    patch:
+      operationId: api_v1_reference_payment_methods_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this payment method.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentMethod'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentMethod'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentMethod'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethod'
+          description: ''
+    delete:
+      operationId: api_v1_reference_payment_methods_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this payment method.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/travelers/:
+    get:
+      operationId: api_v1_travelers_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTravelerList'
+          description: ''
+    post:
+      operationId: api_v1_travelers_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Traveler'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Traveler'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Traveler'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Traveler'
+          description: ''
+  /api/v1/travelers/{id}/:
+    get:
+      operationId: api_v1_travelers_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this traveler.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Traveler'
+          description: ''
+    patch:
+      operationId: api_v1_travelers_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this traveler.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTraveler'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTraveler'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTraveler'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Traveler'
+          description: ''
+  /api/v1/travelers/passports/:
+    get:
+      operationId: api_v1_travelers_passports_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPassportList'
+          description: ''
+    post:
+      operationId: api_v1_travelers_passports_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Passport'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Passport'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Passport'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Passport'
+          description: ''
+  /api/v1/travelers/passports/{id}/:
+    get:
+      operationId: api_v1_travelers_passports_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this passport.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Passport'
+          description: ''
+    patch:
+      operationId: api_v1_travelers_passports_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this passport.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPassport'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPassport'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPassport'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Passport'
+          description: ''
+  /api/v1/trips/:
+    get:
+      operationId: api_v1_trips_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTripList'
+          description: ''
+    post:
+      operationId: api_v1_trips_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Trip'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Trip'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+          description: ''
+  /api/v1/trips/{id}/:
+    get:
+      operationId: api_v1_trips_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+          description: ''
+    patch:
+      operationId: api_v1_trips_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTrip'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTrip'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTrip'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+          description: ''
+  /api/v1/trips/{id}/reorder-stops/:
+    post:
+      operationId: api_v1_trips_reorder_stops_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Trip'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Trip'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+          description: ''
+  /api/v1/trips/{id}/transition/:
+    post:
+      operationId: api_v1_trips_transition_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Trip'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Trip'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+          description: ''
+  /api/v1/trips/flights/:
+    get:
+      operationId: api_v1_trips_flights_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTripFlightList'
+          description: ''
+    post:
+      operationId: api_v1_trips_flights_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripFlight'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TripFlight'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripFlight'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripFlight'
+          description: ''
+  /api/v1/trips/flights/{id}/:
+    get:
+      operationId: api_v1_trips_flights_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip flight.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripFlight'
+          description: ''
+    patch:
+      operationId: api_v1_trips_flights_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip flight.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTripFlight'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTripFlight'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTripFlight'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripFlight'
+          description: ''
+  /api/v1/trips/hotels/:
+    get:
+      operationId: api_v1_trips_hotels_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTripHotelList'
+          description: ''
+    post:
+      operationId: api_v1_trips_hotels_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripHotel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TripHotel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripHotel'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripHotel'
+          description: ''
+  /api/v1/trips/hotels/{id}/:
+    get:
+      operationId: api_v1_trips_hotels_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip hotel.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripHotel'
+          description: ''
+    patch:
+      operationId: api_v1_trips_hotels_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip hotel.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTripHotel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTripHotel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTripHotel'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripHotel'
+          description: ''
+  /api/v1/trips/stops/:
+    get:
+      operationId: api_v1_trips_stops_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTripStopList'
+          description: ''
+    post:
+      operationId: api_v1_trips_stops_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripStop'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TripStop'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripStop'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripStop'
+          description: ''
+  /api/v1/trips/stops/{id}/:
+    get:
+      operationId: api_v1_trips_stops_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip stop.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripStop'
+          description: ''
+    patch:
+      operationId: api_v1_trips_stops_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this trip stop.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTripStop'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTripStop'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTripStop'
+      security:
+      - cookieJwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripStop'
+          description: ''
+components:
+  schemas:
+    Agency:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        legal_name:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        registration_number:
+          type: string
+          maxLength: 100
+        tax_number:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        website:
+          type: string
+          format: uri
+          maxLength: 200
+        logo:
+          type: string
+          format: uri
+        is_active:
+          type: boolean
+          readOnly: true
+        settings:
+          allOf:
+          - $ref: '#/components/schemas/AgencySettings'
+          readOnly: true
+      required:
+      - id
+      - is_active
+      - name
+      - settings
+      - slug
+    AgencyCurrency:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        currency:
+          type: string
+        currency_name:
+          type: string
+          readOnly: true
+        currency_symbol:
+          type: string
+          readOnly: true
+        is_enabled:
+          type: boolean
+        is_accounting:
+          type: boolean
+      required:
+      - currency
+      - currency_name
+      - currency_symbol
+      - id
+    AgencySettings:
+      type: object
+      properties:
+        timezone:
+          type: string
+          maxLength: 64
+        default_language:
+          type: string
+          maxLength: 10
+    Airline:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        iata_code:
+          type: string
+          nullable: true
+          maxLength: 2
+        icao_code:
+          type: string
+          nullable: true
+          maxLength: 3
+        country:
+          type: string
+          format: uuid
+          nullable: true
+        country_code:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+      required:
+      - country_code
+      - id
+      - name
+    Branch:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        code:
+          type: string
+          maxLength: 30
+        address:
+          type: string
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        is_active:
+          type: boolean
+      required:
+      - code
+      - id
+      - name
+    CategoryEnum:
+      enum:
+      - PASSPORT
+      - PHOTO
+      - IDENTITY
+      - VISA
+      - CONTRACT
+      - OTHER
+      type: string
+      description: |-
+        * `PASSPORT` - Passport
+        * `PHOTO` - Photo
+        * `IDENTITY` - Identity
+        * `VISA` - Visa
+        * `CONTRACT` - Contract
+        * `OTHER` - Other
+    City:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        country:
+          type: string
+          format: uuid
+        country_code:
+          type: string
+          readOnly: true
+        country_name:
+          type: string
+          readOnly: true
+      required:
+      - country
+      - country_code
+      - country_name
+      - id
+      - name
+    Country:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        code:
+          type: string
+          maxLength: 2
+      required:
+      - code
+      - id
+      - name
+    Csrf:
+      type: object
+      properties:
+        csrfToken:
+          type: string
+      required:
+      - csrfToken
+    Currency:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 3
+        name:
+          type: string
+          maxLength: 80
+        symbol:
+          type: string
+          maxLength: 8
+        decimal_places:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        is_active:
+          type: boolean
+      required:
+      - code
+      - name
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        company_name:
+          type: string
+          maxLength: 180
+        display_name:
+          type: string
+          readOnly: true
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: string
+        notes:
+          type: string
+        branch:
+          type: string
+          format: uuid
+        branch_name:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - branch
+      - branch_name
+      - created_at
+      - display_name
+      - id
+      - updated_at
+    DirectionEnum:
+      enum:
+      - OUTBOUND
+      - RETURN
+      - INTERNAL
+      type: string
+      description: |-
+        * `OUTBOUND` - Outbound
+        * `RETURN` - Return
+        * `INTERNAL` - Internal
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        title:
+          type: string
+          maxLength: 180
+        original_filename:
+          type: string
+          maxLength: 255
+        mime_type:
+          type: string
+          maxLength: 120
+        size_bytes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        sha256:
+          type: string
+          maxLength: 64
+        owner_type:
+          type: string
+          nullable: true
+          readOnly: true
+        owner_id:
+          type: string
+          nullable: true
+          readOnly: true
+        download_url:
+          type: string
+          format: uri
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - download_url
+      - id
+      - mime_type
+      - original_filename
+      - owner_id
+      - owner_type
+      - sha256
+      - size_bytes
+      - title
+    DocumentUpload:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+          writeOnly: true
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        title:
+          type: string
+          maxLength: 180
+        owner_type:
+          $ref: '#/components/schemas/OwnerTypeEnum'
+        owner_id:
+          type: string
+          format: uuid
+        purpose:
+          type: string
+          maxLength: 80
+      required:
+      - category
+      - file
+      - owner_id
+      - owner_type
+      - title
+    GenderEnum:
+      enum:
+      - F
+      - M
+      - X
+      type: string
+      description: |-
+        * `F` - Female
+        * `M` - Male
+        * `X` - Unspecified
+    Hotel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 180
+        city:
+          type: string
+          format: uuid
+        city_name:
+          type: string
+          readOnly: true
+        country_code:
+          type: string
+          readOnly: true
+        star_rating:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+        address:
+          type: string
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        website:
+          type: string
+          format: uri
+          maxLength: 200
+        check_in_time:
+          type: string
+          format: time
+          nullable: true
+        check_out_time:
+          type: string
+          format: time
+          nullable: true
+        notes:
+          type: string
+        is_active:
+          type: boolean
+        room_count:
+          type: integer
+          readOnly: true
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - city
+      - city_name
+      - country_code
+      - created_at
+      - id
+      - name
+      - room_count
+      - updated_at
+    KindEnum:
+      enum:
+      - INDIVIDUAL
+      - COMPANY
+      type: string
+      description: |-
+        * `INDIVIDUAL` - Individual
+        * `COMPANY` - Company
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    Me:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        agency_name:
+          type: string
+          readOnly: true
+        branch:
+          type: string
+          format: uuid
+          nullable: true
+        branch_name:
+          type: string
+          readOnly: true
+        role_names:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        is_platform_admin:
+          type: boolean
+        permissions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - agency_name
+      - branch_name
+      - email
+      - id
+      - permissions
+      - role_names
+    OwnerTypeEnum:
+      enum:
+      - TRAVELER
+      - PASSPORT
+      - TRIP
+      type: string
+      description: |-
+        * `TRAVELER` - TRAVELER
+        * `PASSPORT` - PASSPORT
+        * `TRIP` - TRIP
+    PaginatedAgencyCurrencyList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgencyCurrency'
+    PaginatedAirlineList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Airline'
+    PaginatedBranchList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Branch'
+    PaginatedCityList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/City'
+    PaginatedCountryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Country'
+    PaginatedCurrencyList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Currency'
+    PaginatedCustomerList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+    PaginatedDocumentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+    PaginatedHotelList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Hotel'
+    PaginatedPassengerCategoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PassengerCategory'
+    PaginatedPassportList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Passport'
+    PaginatedPaymentMethodList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentMethod'
+    PaginatedPermissionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
+    PaginatedRoleList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+    PaginatedRoomList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+    PaginatedRoomTypeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomType'
+    PaginatedSupplierList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Supplier'
+    PaginatedTravelerList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Traveler'
+    PaginatedTripFlightList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripFlight'
+    PaginatedTripHotelList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripHotel'
+    PaginatedTripList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trip'
+    PaginatedTripStopList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripStop'
+    PaginatedUserSummaryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummary'
+    PassengerCategory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 30
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 80
+        requires_bed_by_default:
+          type: boolean
+        is_system:
+          type: boolean
+          readOnly: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+      required:
+      - code
+      - id
+      - is_system
+      - name
+    Passport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        traveler:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/PassportStatusEnum'
+        passport_number:
+          type: string
+          maxLength: 40
+        first_name:
+          type: string
+          maxLength: 100
+        middle_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        birth_date:
+          type: string
+          format: date
+        birth_place:
+          type: string
+          maxLength: 140
+        birth_country:
+          type: string
+          format: uuid
+          nullable: true
+        nationality:
+          type: string
+          format: uuid
+        gender:
+          $ref: '#/components/schemas/GenderEnum'
+        issue_date:
+          type: string
+          format: date
+        expiry_date:
+          type: string
+          format: date
+        issuing_country:
+          type: string
+          format: uuid
+        issue_place:
+          type: string
+          maxLength: 140
+        mrz:
+          type: string
+        passport_image:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        ocr_raw_data:
+          readOnly: true
+        ocr_source:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - birth_date
+      - created_at
+      - expiry_date
+      - first_name
+      - gender
+      - id
+      - issue_date
+      - issuing_country
+      - last_name
+      - nationality
+      - ocr_raw_data
+      - ocr_source
+      - passport_image
+      - passport_number
+      - traveler
+      - updated_at
+    PassportStatusEnum:
+      enum:
+      - CURRENT
+      - EXPIRED
+      - REPLACED
+      type: string
+      description: |-
+        * `CURRENT` - Current
+        * `EXPIRED` - Expired
+        * `REPLACED` - Replaced
+    PassportSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        passport_number:
+          type: string
+          maxLength: 40
+        full_name:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/PassportStatusEnum'
+        birth_date:
+          type: string
+          format: date
+        expiry_date:
+          type: string
+          format: date
+        nationality_code:
+          type: string
+          readOnly: true
+      required:
+      - birth_date
+      - expiry_date
+      - full_name
+      - id
+      - nationality_code
+      - passport_number
+    PatchedAgency:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        legal_name:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        registration_number:
+          type: string
+          maxLength: 100
+        tax_number:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        website:
+          type: string
+          format: uri
+          maxLength: 200
+        logo:
+          type: string
+          format: uri
+        is_active:
+          type: boolean
+          readOnly: true
+        settings:
+          allOf:
+          - $ref: '#/components/schemas/AgencySettings'
+          readOnly: true
+    PatchedAgencyCurrency:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        currency:
+          type: string
+        currency_name:
+          type: string
+          readOnly: true
+        currency_symbol:
+          type: string
+          readOnly: true
+        is_enabled:
+          type: boolean
+        is_accounting:
+          type: boolean
+    PatchedBranch:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        code:
+          type: string
+          maxLength: 30
+        address:
+          type: string
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        is_active:
+          type: boolean
+    PatchedCustomer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        company_name:
+          type: string
+          maxLength: 180
+        display_name:
+          type: string
+          readOnly: true
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: string
+        notes:
+          type: string
+        branch:
+          type: string
+          format: uuid
+        branch_name:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedHotel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 180
+        city:
+          type: string
+          format: uuid
+        city_name:
+          type: string
+          readOnly: true
+        country_code:
+          type: string
+          readOnly: true
+        star_rating:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+        address:
+          type: string
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        website:
+          type: string
+          format: uri
+          maxLength: 200
+        check_in_time:
+          type: string
+          format: time
+          nullable: true
+        check_out_time:
+          type: string
+          format: time
+          nullable: true
+        notes:
+          type: string
+        is_active:
+          type: boolean
+        room_count:
+          type: integer
+          readOnly: true
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPassengerCategory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 30
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 80
+        requires_bed_by_default:
+          type: boolean
+        is_system:
+          type: boolean
+          readOnly: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+    PatchedPassport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        traveler:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/PassportStatusEnum'
+        passport_number:
+          type: string
+          maxLength: 40
+        first_name:
+          type: string
+          maxLength: 100
+        middle_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        birth_date:
+          type: string
+          format: date
+        birth_place:
+          type: string
+          maxLength: 140
+        birth_country:
+          type: string
+          format: uuid
+          nullable: true
+        nationality:
+          type: string
+          format: uuid
+        gender:
+          $ref: '#/components/schemas/GenderEnum'
+        issue_date:
+          type: string
+          format: date
+        expiry_date:
+          type: string
+          format: date
+        issuing_country:
+          type: string
+          format: uuid
+        issue_place:
+          type: string
+          maxLength: 140
+        mrz:
+          type: string
+        passport_image:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        ocr_raw_data:
+          readOnly: true
+        ocr_source:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPaymentMethod:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 30
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 80
+        is_system:
+          type: boolean
+          readOnly: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+    PatchedRole:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        code:
+          type: string
+          maxLength: 60
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        permission_ids:
+          type: array
+          items:
+            type: integer
+        is_system:
+          type: boolean
+          readOnly: true
+        is_active:
+          type: boolean
+    PatchedRoom:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        hotel:
+          type: string
+          format: uuid
+        hotel_name:
+          type: string
+          readOnly: true
+        room_type:
+          type: string
+          format: uuid
+        room_type_name:
+          type: string
+          readOnly: true
+        number:
+          type: string
+          maxLength: 30
+        floor:
+          type: string
+          maxLength: 30
+        standard_beds:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        max_extra_beds:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        maximum_beds:
+          type: integer
+          readOnly: true
+        notes:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedRoomType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 40
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 100
+        default_standard_beds:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        description:
+          type: string
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedSupplier:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 180
+        legal_name:
+          type: string
+          maxLength: 220
+        registration_number:
+          type: string
+          maxLength: 100
+        tax_number:
+          type: string
+          maxLength: 100
+        contact_name:
+          type: string
+          maxLength: 160
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: string
+        notes:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedTraveler:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        display_name:
+          type: string
+          readOnly: true
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: string
+        notes:
+          type: string
+        branch:
+          type: string
+          format: uuid
+        branch_name:
+          type: string
+          readOnly: true
+        current_photo:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        current_passport:
+          allOf:
+          - $ref: '#/components/schemas/PassportSummary'
+          readOnly: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedTrip:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 60
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 180
+        branch:
+          type: string
+          format: uuid
+        branch_name:
+          type: string
+          readOnly: true
+        departure_date:
+          type: string
+          format: date
+        return_date:
+          type: string
+          format: date
+        booking_open_date:
+          type: string
+          format: date
+          nullable: true
+        booking_close_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TripStatusEnum'
+          readOnly: true
+        description:
+          type: string
+        notes:
+          type: string
+        stop_count:
+          type: integer
+          readOnly: true
+          default: 0
+        hotel_count:
+          type: integer
+          readOnly: true
+          default: 0
+        flight_count:
+          type: integer
+          readOnly: true
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedTripFlight:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trip:
+          type: string
+          format: uuid
+        airline:
+          type: string
+          format: uuid
+        airline_name:
+          type: string
+          readOnly: true
+        direction:
+          $ref: '#/components/schemas/DirectionEnum'
+        flight_number:
+          type: string
+          maxLength: 20
+        origin_city:
+          type: string
+          format: uuid
+        origin_city_name:
+          type: string
+          readOnly: true
+        destination_city:
+          type: string
+          format: uuid
+        destination_city_name:
+          type: string
+          readOnly: true
+        origin_airport_code:
+          type: string
+          maxLength: 3
+        destination_airport_code:
+          type: string
+          maxLength: 3
+        departure_at:
+          type: string
+          format: date-time
+        arrival_at:
+          type: string
+          format: date-time
+        booking_class:
+          type: string
+          maxLength: 20
+        order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        notes:
+          type: string
+    PatchedTripHotel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        stop:
+          type: string
+          format: uuid
+        hotel:
+          type: string
+          format: uuid
+        hotel_name:
+          type: string
+          readOnly: true
+        city_name:
+          type: string
+          readOnly: true
+        is_primary:
+          type: boolean
+        notes:
+          type: string
+    PatchedTripStop:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trip:
+          type: string
+          format: uuid
+        city:
+          type: string
+          format: uuid
+        city_name:
+          type: string
+          readOnly: true
+        country_code:
+          type: string
+          readOnly: true
+        arrival_date:
+          type: string
+          format: date
+        departure_date:
+          type: string
+          format: date
+        nights:
+          type: integer
+          readOnly: true
+        order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        notes:
+          type: string
+    PatchedUserWrite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        branch:
+          type: string
+          format: uuid
+          nullable: true
+        role_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        password:
+          type: string
+          writeOnly: true
+          minLength: 10
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+    PaymentMethod:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 30
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 80
+        is_system:
+          type: boolean
+          readOnly: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+      required:
+      - code
+      - id
+      - is_system
+      - name
+    Permission:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        app_label:
+          type: string
+          readOnly: true
+        codename:
+          type: string
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 255
+      required:
+      - app_label
+      - codename
+      - id
+      - name
+    Role:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        code:
+          type: string
+          maxLength: 60
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+        permission_ids:
+          type: array
+          items:
+            type: integer
+        is_system:
+          type: boolean
+          readOnly: true
+        is_active:
+          type: boolean
+      required:
+      - code
+      - id
+      - is_system
+      - name
+    Room:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        hotel:
+          type: string
+          format: uuid
+        hotel_name:
+          type: string
+          readOnly: true
+        room_type:
+          type: string
+          format: uuid
+        room_type_name:
+          type: string
+          readOnly: true
+        number:
+          type: string
+          maxLength: 30
+        floor:
+          type: string
+          maxLength: 30
+        standard_beds:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        max_extra_beds:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        maximum_beds:
+          type: integer
+          readOnly: true
+        notes:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - hotel
+      - hotel_name
+      - id
+      - maximum_beds
+      - number
+      - room_type
+      - room_type_name
+      - standard_beds
+      - updated_at
+    RoomType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 40
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 100
+        default_standard_beds:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        description:
+          type: string
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - code
+      - created_at
+      - id
+      - name
+      - updated_at
+    Supplier:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 180
+        legal_name:
+          type: string
+          maxLength: 220
+        registration_number:
+          type: string
+          maxLength: 100
+        tax_number:
+          type: string
+          maxLength: 100
+        contact_name:
+          type: string
+          maxLength: 160
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: string
+        notes:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    Traveler:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        display_name:
+          type: string
+          readOnly: true
+        phone:
+          type: string
+          maxLength: 40
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: string
+        notes:
+          type: string
+        branch:
+          type: string
+          format: uuid
+        branch_name:
+          type: string
+          readOnly: true
+        current_photo:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        current_passport:
+          allOf:
+          - $ref: '#/components/schemas/PassportSummary'
+          readOnly: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - branch
+      - branch_name
+      - created_at
+      - current_passport
+      - current_photo
+      - display_name
+      - id
+      - updated_at
+    Trip:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 60
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 180
+        branch:
+          type: string
+          format: uuid
+        branch_name:
+          type: string
+          readOnly: true
+        departure_date:
+          type: string
+          format: date
+        return_date:
+          type: string
+          format: date
+        booking_open_date:
+          type: string
+          format: date
+          nullable: true
+        booking_close_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TripStatusEnum'
+          readOnly: true
+        description:
+          type: string
+        notes:
+          type: string
+        stop_count:
+          type: integer
+          readOnly: true
+          default: 0
+        hotel_count:
+          type: integer
+          readOnly: true
+          default: 0
+        flight_count:
+          type: integer
+          readOnly: true
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - branch
+      - branch_name
+      - code
+      - created_at
+      - departure_date
+      - flight_count
+      - hotel_count
+      - id
+      - name
+      - return_date
+      - status
+      - stop_count
+      - updated_at
+    TripFlight:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trip:
+          type: string
+          format: uuid
+        airline:
+          type: string
+          format: uuid
+        airline_name:
+          type: string
+          readOnly: true
+        direction:
+          $ref: '#/components/schemas/DirectionEnum'
+        flight_number:
+          type: string
+          maxLength: 20
+        origin_city:
+          type: string
+          format: uuid
+        origin_city_name:
+          type: string
+          readOnly: true
+        destination_city:
+          type: string
+          format: uuid
+        destination_city_name:
+          type: string
+          readOnly: true
+        origin_airport_code:
+          type: string
+          maxLength: 3
+        destination_airport_code:
+          type: string
+          maxLength: 3
+        departure_at:
+          type: string
+          format: date-time
+        arrival_at:
+          type: string
+          format: date-time
+        booking_class:
+          type: string
+          maxLength: 20
+        order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        notes:
+          type: string
+      required:
+      - airline
+      - airline_name
+      - arrival_at
+      - departure_at
+      - destination_airport_code
+      - destination_city
+      - destination_city_name
+      - direction
+      - flight_number
+      - id
+      - order
+      - origin_airport_code
+      - origin_city
+      - origin_city_name
+      - trip
+    TripHotel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        stop:
+          type: string
+          format: uuid
+        hotel:
+          type: string
+          format: uuid
+        hotel_name:
+          type: string
+          readOnly: true
+        city_name:
+          type: string
+          readOnly: true
+        is_primary:
+          type: boolean
+        notes:
+          type: string
+      required:
+      - city_name
+      - hotel
+      - hotel_name
+      - id
+      - stop
+    TripStatusEnum:
+      enum:
+      - DRAFT
+      - OPEN
+      - CLOSED
+      - DEPARTED
+      - COMPLETED
+      - CANCELLED
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `OPEN` - Open for booking
+        * `CLOSED` - Closed for booking
+        * `DEPARTED` - Departed
+        * `COMPLETED` - Completed
+        * `CANCELLED` - Cancelled
+    TripStop:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trip:
+          type: string
+          format: uuid
+        city:
+          type: string
+          format: uuid
+        city_name:
+          type: string
+          readOnly: true
+        country_code:
+          type: string
+          readOnly: true
+        arrival_date:
+          type: string
+          format: date
+        departure_date:
+          type: string
+          format: date
+        nights:
+          type: integer
+          readOnly: true
+        order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        notes:
+          type: string
+      required:
+      - arrival_date
+      - city
+      - city_name
+      - country_code
+      - departure_date
+      - id
+      - nights
+      - order
+      - trip
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        agency_name:
+          type: string
+          readOnly: true
+        branch:
+          type: string
+          format: uuid
+          nullable: true
+        branch_name:
+          type: string
+          readOnly: true
+        role_names:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        is_platform_admin:
+          type: boolean
+      required:
+      - agency_name
+      - branch_name
+      - email
+      - id
+      - role_names
+    UserWrite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        branch:
+          type: string
+          format: uuid
+          nullable: true
+        role_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        password:
+          type: string
+          writeOnly: true
+          minLength: 10
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+      required:
+      - branch
+      - email
+      - id
+  securitySchemes:
+    cookieJwtAuth:
+      type: apiKey
+      in: cookie
+      name: travel_erp_access
+      description: JWT access token stored in an HTTP-only cookie.
