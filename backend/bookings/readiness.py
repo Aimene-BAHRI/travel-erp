@@ -1,5 +1,6 @@
 """Shared, read-only operational rules for APIs, payments, alerts and exports."""
 from collections import Counter
+from django.db.models import Sum
 from django.utils import timezone
 from .models import Booking, BookingTraveler
 from travelers.rules import passport_validity
@@ -8,6 +9,8 @@ ACTIVE = [Booking.Status.CONFIRMED, Booking.Status.COMPLETED]
 
 
 def consumes_seat(link):
+    if getattr(link, "service_type", "PACK") == "VISA_ONLY":
+        return False
     return link.seat_required if link.seat_required is not None else link.passenger_category.code.upper() != "INF"
 
 
@@ -33,8 +36,14 @@ def seat_summary(trip, links=None):
         links = BookingTraveler.objects.filter(booking__trip=trip, booking__status__in=ACTIVE).select_related("passenger_category")
     counts = Counter(link.passenger_category.code.upper() for link in links)
     occupied = sum(consumes_seat(link) for link in links)
+    from partners.models import PartnerAllocation
+
+    reserved_tickets = PartnerAllocation.objects.filter(
+        trip=trip, kind=PartnerAllocation.Kind.TICKETS, is_active=True
+    ).aggregate(total=Sum("reserved_quantity"))["total"] or 0
+    occupied += reserved_tickets
     maximum = trip.max_travelers
-    return {"capacity": maximum, "occupied": occupied, "remaining": None if maximum is None else max(maximum - occupied, 0), "overbooked_places": 0 if maximum is None else max(occupied - maximum, 0), "total": sum(counts.values()), "adt": counts["ADT"], "chd": counts["CHD"], "inf": counts["INF"]}
+    return {"capacity": maximum, "occupied": occupied, "remaining": None if maximum is None else max(maximum - occupied, 0), "overbooked_places": 0 if maximum is None else max(occupied - maximum, 0), "total": sum(counts.values()) + reserved_tickets, "reserved_ticket_places": reserved_tickets, "adt": counts["ADT"], "chd": counts["CHD"], "inf": counts["INF"]}
 
 
 def current_passport(link):
@@ -115,11 +124,16 @@ def payment_issues(booking):
 
 
 def booking_capacity(booking):
+    from partners.models import PartnerAllocation
+
     links = list(BookingTraveler.objects.filter(booking__trip_id=booking.trip_id, booking__status__in=ACTIVE).select_related("passenger_category"))
     summary = seat_summary(booking.trip, links)
     own = list(booking.travelers.select_related("passenger_category"))
     required = sum(consumes_seat(link) for link in own) + max(booking.expected_travelers - len(own), 0)
     others = sum(consumes_seat(link) for link in links if link.booking_id != booking.pk)
+    others += PartnerAllocation.objects.filter(
+        trip=booking.trip, kind=PartnerAllocation.Kind.TICKETS, is_active=True
+    ).aggregate(total=Sum("reserved_quantity"))["total"] or 0
     maximum = summary["capacity"]
     available = None if maximum is None else max(maximum - others, 0)
     return {"maximum": maximum, "booked": summary["occupied"], "remaining": summary["remaining"], "overbooked_places": summary["overbooked_places"], "available_for_booking": available, "has_capacity": available is None or required <= available}

@@ -10,6 +10,7 @@ class NotificationRule(models.Model):
         TRIP_DEPARTURE = "TRIP_DEPARTURE", "Trip departure approaching"
         TRIP_CLOSING = "TRIP_CLOSING", "Trip pending closing"
         BOOKING_BALANCE = "BOOKING_BALANCE", "Booking balance before departure"
+        AIRLINE_DUE = "AIRLINE_DUE", "Airline installment due"
         SUPPLIER_DUE = "SUPPLIER_DUE", "Supplier expense due"
         PAYMENT_RECEIVED = "PAYMENT_RECEIVED", "Customer payment received"
         PASSPORT_ATTENTION = "PASSPORT_ATTENTION", "Passport missing or expiring"

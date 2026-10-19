@@ -344,6 +344,8 @@ export function PassportScanAssistant({
       <label className="block text-sm font-medium">
         {uiText("MRZ / scanner text")}
         <textarea
+          dir="ltr"
+          style={{ textAlign: "left", unicodeBidi: "isolate" }}
           className="mt-1 min-h-20 w-full rounded-lg border bg-white px-3 py-2 font-mono text-xs"
           value={mrz}
           onChange={(event) => setMrz(event.target.value)}

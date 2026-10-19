@@ -65,6 +65,7 @@ class AllocationSerializer(CleanSerializer):
     partner_name = serializers.CharField(source="partner.name", read_only=True)
     trip_name = serializers.CharField(source="trip.name", read_only=True)
     used_quantity = serializers.IntegerField(read_only=True)
+    reserved_quantity = serializers.IntegerField(read_only=True)
     remaining_quantity = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -78,13 +79,14 @@ class AllocationSerializer(CleanSerializer):
             "kind",
             "quantity",
             "used_quantity",
+            "reserved_quantity",
             "remaining_quantity",
             "notes",
             "is_active",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "used_quantity", "remaining_quantity", "created_at", "updated_at"]
+        read_only_fields = ["id", "used_quantity", "reserved_quantity", "remaining_quantity", "created_at", "updated_at"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

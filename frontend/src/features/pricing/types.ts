@@ -41,6 +41,7 @@ export interface QuoteRecord {
 }
 
 export interface HotelPriceRecord {
+  passenger_category_code: string;
   scope: "HOTEL_STAY" | "TRIP_PACKAGE";
   id: string;
   trip_hotel: string;

@@ -10,8 +10,10 @@ import { MutationMessage } from "@/components/forms/mutation-message";
 import { NotificationSettings } from "@/features/notifications/notification-settings";
 import { ReferenceSettings } from "@/features/reference/reference-settings";
 import { apiRequest } from "@/lib/api/client";
+import { AccessManagement } from "./access-management";
+import type { CurrentUser } from "@/features/auth/types";
 
-type Section = "overview" | "agency" | "operations" | "notifications";
+type Section = "overview" | "agency" | "operations" | "notifications" | "access";
 type SetupSummary = {
   status: "SETUP" | "READY" | "ACTIVE";
   complete_count: number;
@@ -28,9 +30,10 @@ type Agency = {
 const sections: Array<[Section, string]> = [
   ["overview", "Setup overview"], ["agency", "Agency profile"],
   ["operations", "Branches & finance"], ["notifications", "Notifications"],
+  ["access", "Users & roles"],
 ];
 
-export function AgencySetupWorkspace() {
+export function AgencySetupWorkspace({ user }: { user: CurrentUser }) {
   const uiText = useUiText();
   const cache = useQueryClient();
   const [section, setSection] = useState<Section>("overview");
@@ -43,6 +46,7 @@ export function AgencySetupWorkspace() {
     <nav className="flex gap-1 overflow-x-auto rounded-xl border bg-white p-2 shadow-sm">
       {sections.map(([key, label]) => <button key={key} onClick={() => setSection(key)} className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ${section === key ? "bg-cyan-800 text-white" : "text-slate-600 hover:bg-slate-100"}`}>{uiText(label)}</button>)}
     </nav>
+    {section === "access" && <AccessManagement user={user} />}
     {setup.isPending ? <div className="grid min-h-56 place-items-center"><LoaderCircle className="size-7 animate-spin text-cyan-800" /></div> : setup.data && <>
       {section === "overview" && <SetupOverview summary={setup.data} onOpen={setSection} onActivate={() => activate.mutate()} activating={activate.isPending} error={activate.error} />}
       {section === "agency" && <AgencyProfile onSaved={() => { cache.invalidateQueries({ queryKey: ["agency-setup"] }); }} />}

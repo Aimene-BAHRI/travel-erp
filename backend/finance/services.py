@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from bookings.models import Booking
 from pricing.services import quantize_money
@@ -23,16 +24,19 @@ def cash_flow_summary(*, agency, trip_id=None):
     rows = []
     for entry in transactions.select_related("currency", "booking"):
         amount = entry.amount * entry.direction
-        rows.append({"number": entry.number, "date": entry.transaction_date, "kind": entry.kind,
+        rows.append({"id": str(entry.pk), "manage_url": f"/bookings/{entry.booking_id}", "number": entry.number, "date": entry.transaction_date, "kind": entry.kind,
                      "description": f"Booking {entry.booking.code}", "currency": entry.currency_id,
                      "amount": amount})
     for entry in expense_payments.select_related("currency", "expense"):
         amount = entry.amount if entry.kind == ExpensePayment.Kind.PAYMENT else -entry.amount
-        rows.append({"number": entry.number, "date": entry.payment_date, "kind": entry.kind,
+        rows.append({"id": str(entry.pk), "manage_url": f"/trips/{entry.expense.trip_id}", "number": entry.number, "date": entry.payment_date, "kind": entry.kind,
                      "description": entry.expense.description, "currency": entry.currency_id,
                      "amount": -amount})
-    for entry in cash_entries.select_related("currency", "trip"):
-        rows.append({"number": entry.number, "date": entry.entry_date, "kind": entry.direction,
+    for entry in cash_entries.select_related("currency", "trip", "reversal", "airlineinstallment", "reversed_airline_installment"):
+        airline = hasattr(entry, "airlineinstallment") or hasattr(entry, "reversed_airline_installment")
+        rows.append({"id": str(entry.pk), "editable": not airline and not entry.reverses_id and not hasattr(entry, "reversal"),
+                     "manage_url": f"/cash-flow?tab=installments&trip={entry.trip_id}" if airline else None,
+                     "number": entry.number, "date": entry.entry_date, "kind": entry.direction,
                      "description": entry.description, "recipient_name": entry.recipient_name,
                      "currency": entry.currency_id, "amount": entry.signed_amount,
                      "source_amount": entry.source_amount, "source_currency": entry.source_currency_id,
@@ -51,7 +55,7 @@ def cash_flow_summary(*, agency, trip_id=None):
 @transaction.atomic
 def post_cash_entry(*, agency, actor, branch, trip=None, direction, category, description,
                     amount, currency, payment_method, entry_date, reference="", notes="",
-                    recipient_name="", source_amount=None, source_currency=None, exchange_rate=None):
+                    recipient_name="", source_amount=None, source_currency=None, exchange_rate=None, reverses=None):
     _validate_method(payment_method, agency)
     amount = Decimal(amount)
     if amount <= 0:
@@ -65,7 +69,7 @@ def post_cash_entry(*, agency, actor, branch, trip=None, direction, category, de
     if source_currency and source_currency.pk == currency.pk:
         raise ValidationError("Source and target currencies must differ for a conversion.")
     entry = AgencyCashEntry(
-        agency=agency, branch=branch, trip=trip,
+        agency=agency, branch=branch, trip=trip, reverses=reverses,
         number=f"CASH-{entry_date:%Y%m%d}-{uuid.uuid4().hex[:8].upper()}",
         direction=direction, category=category, description=description,
         recipient_name=recipient_name, amount=amount, currency=currency,
@@ -86,11 +90,35 @@ def booking_financial_summary(booking):
     )
     booking_paid = sum((item.signed_booking_amount for item in entries), Decimal("0"))
     accounting_paid = sum((item.signed_accounting_amount for item in entries), Decimal("0"))
-    traveler_balances = []
-    for traveler in booking.travelers.select_related("traveler").prefetch_related(
+    from bookings.commercial import extra_total
+
+    charge_total = sum(
+        (
+            charge.final_amount
+            for traveler in booking.travelers.prefetch_related("charges__discounts")
+            for charge in traveler.charges.all()
+        ),
+        Decimal("0"),
+    )
+    extras_total = extra_total(booking)
+    booking_total = (
+        charge_total + extras_total
+        if charge_total or extras_total
+        else booking.total_amount
+    )
+    travelers = list(booking.travelers.select_related("traveler").prefetch_related(
         "charges__discounts", "payment_allocations__transaction__reverses"
-    ):
+    ))
+    extra_amount = extra_total(booking)
+    extra_recipient = next(
+        (traveler for traveler in travelers if traveler.is_customer_contact),
+        travelers[0] if travelers else None,
+    )
+    traveler_balances = []
+    for traveler in travelers:
         total = sum((charge.final_amount for charge in traveler.charges.all()), Decimal("0"))
+        if extra_recipient and traveler.pk == extra_recipient.pk:
+            total += extra_amount
         traveler_paid = sum(
             (
                 allocation.amount * allocation.transaction.direction
@@ -108,9 +136,9 @@ def booking_financial_summary(booking):
             }
         )
     return {
-        "booking_total": booking.total_amount,
+        "booking_total": booking_total,
         "paid_amount": booking_paid,
-        "remaining_amount": booking.total_amount - booking_paid,
+        "remaining_amount": booking_total - booking_paid,
         "currency": booking.currency_id,
         "accounting_total": booking.accounting_total_amount,
         "accounting_paid_amount": accounting_paid,
@@ -171,8 +199,30 @@ def post_transaction(
         booking.accounting_currency,
     )
     summary = booking_financial_summary(booking)
-    if kind == FinancialTransaction.Kind.PAYMENT and booking_amount > summary["remaining_amount"]:
-        raise ValidationError("Payment exceeds the remaining booking balance.")
+    allocations = allocations or []
+    allocation_total = sum((Decimal(item["amount"]) for item in allocations), Decimal("0"))
+    if allocations and allocation_total != booking_amount:
+        raise ValidationError("Traveler allocations must equal the payment in booking currency.")
+    if kind == FinancialTransaction.Kind.PAYMENT:
+        if allocations:
+            traveler_balances = summary["traveler_balances"]
+            has_traveler_pricing = any(row["total_amount"] for row in traveler_balances)
+            balances = {
+                row["booking_traveler"]: row["remaining_amount"]
+                for row in traveler_balances
+            }
+            for item in allocations:
+                traveler_id = str(item["booking_traveler"])
+                allocation_amount = Decimal(item["amount"])
+                allowed_balance = (
+                    balances.get(traveler_id, Decimal("0"))
+                    if has_traveler_pricing
+                    else summary["remaining_amount"]
+                )
+                if allocation_amount > allowed_balance:
+                    raise ValidationError("Payment allocation exceeds the traveler's remaining balance.")
+        elif booking_amount > summary["remaining_amount"]:
+            raise ValidationError("Payment exceeds the remaining booking balance.")
     if kind == FinancialTransaction.Kind.REFUND and booking_amount > summary["paid_amount"]:
         raise ValidationError("Refund exceeds the net amount paid.")
     prefix = "PAY" if kind == FinancialTransaction.Kind.PAYMENT else "REF"
@@ -197,10 +247,6 @@ def post_transaction(
     )
     entry.full_clean()
     entry.save()
-    allocations = allocations or []
-    allocation_total = sum((Decimal(item["amount"]) for item in allocations), Decimal("0"))
-    if allocations and allocation_total != booking_amount:
-        raise ValidationError("Traveler allocations must equal the payment in booking currency.")
     traveler_ids = [item["booking_traveler"] for item in allocations]
     if len(traveler_ids) != len(set(traveler_ids)):
         raise ValidationError("Each traveler may be allocated only once per transaction.")
@@ -358,3 +404,24 @@ def reverse_expense_payment(*, agency, actor, payment_id, payment_date, reason):
     entry.full_clean()
     entry.save()
     return entry
+
+
+@transaction.atomic
+def correct_cash_entry(*, agency, actor, entry_id, replacement=None):
+    entry = AgencyCashEntry.objects.select_for_update().get(pk=entry_id, agency=agency)
+    if entry.reverses_id or hasattr(entry, "reversal"):
+        raise ValidationError("This cash entry has already been reversed or is a reversal.")
+    if hasattr(entry, "airlineinstallment") or hasattr(entry, "reversed_airline_installment"):
+        raise ValidationError("Manage this payment in Airline installments.")
+    reversal = post_cash_entry(
+        agency=agency, actor=actor, branch=entry.branch, trip=entry.trip,
+        direction="OUT" if entry.direction == "IN" else "IN", category=entry.category,
+        description=f"Reversal: {entry.number}", amount=entry.amount, currency=entry.currency,
+        payment_method=entry.payment_method, entry_date=timezone.localdate(),
+        reference=entry.number, notes="Cash ledger correction", reverses=entry,
+        source_amount=entry.source_amount, source_currency=entry.source_currency,
+        exchange_rate=entry.exchange_rate, recipient_name=entry.recipient_name,
+    )
+    if replacement is not None:
+        return post_cash_entry(agency=agency, actor=actor, **replacement)
+    return reversal

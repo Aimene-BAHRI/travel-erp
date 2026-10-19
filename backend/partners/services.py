@@ -15,6 +15,77 @@ from .models import (
 
 
 @transaction.atomic
+def reserve_ticket_places(*, allocation_id, quantity, agency, actor):
+    from trips.models import Trip
+    from bookings.readiness import seat_summary
+
+    allocation = PartnerAllocation.objects.select_for_update().select_related("trip").get(
+        pk=allocation_id, agency=agency, is_active=True, kind=PartnerAllocation.Kind.TICKETS
+    )
+    if quantity < 1 or quantity > allocation.remaining_quantity:
+        raise ValidationError("Ticket places exceed the partner's remaining allocation.")
+    trip = Trip.objects.select_for_update().get(pk=allocation.trip_id)
+    summary = seat_summary(trip)
+    if summary["remaining"] is not None and quantity > summary["remaining"]:
+        raise ValidationError("The trip does not have enough remaining ticket places.")
+    allocation.reserved_quantity += quantity
+    allocation.full_clean()
+    allocation.save(update_fields=["reserved_quantity", "updated_at"])
+    return allocation
+
+
+@transaction.atomic
+def reserve_customer_ticket_places(*, trip_id, customer_id, quantity, agency, actor):
+    from bookings.readiness import seat_summary
+    from customers.models import Customer
+    from partners.models import Partner
+    from trips.models import Trip
+
+    customer = Customer.objects.select_for_update().get(
+        pk=customer_id, agency=agency, is_active=True, kind=Customer.Kind.COMPANY
+    )
+    trip = Trip.objects.select_for_update().get(pk=trip_id, agency=agency)
+    if quantity < 1:
+        raise ValidationError("Reserve at least one ticket place.")
+    summary = seat_summary(trip)
+    if summary["remaining"] is not None and quantity > summary["remaining"]:
+        raise ValidationError("The trip does not have enough remaining ticket places.")
+
+    partner, _ = Partner.objects.get_or_create(
+        agency=agency,
+        name=customer.company_name,
+        defaults={
+            "branch": customer.branch,
+            "kind": Partner.Kind.COMPANY,
+            "phone": customer.phone,
+            "email": customer.email,
+            "address": customer.address,
+            "notes": customer.notes,
+            "created_by": actor,
+        },
+    )
+    allocation, created = PartnerAllocation.objects.select_for_update().get_or_create(
+        agency=agency,
+        partner=partner,
+        trip=trip,
+        kind=PartnerAllocation.Kind.TICKETS,
+        defaults={
+            "quantity": quantity,
+            "reserved_quantity": quantity,
+            "notes": "Ticket places reserved from company customer.",
+            "created_by": actor,
+        },
+    )
+    if not created:
+        allocation.is_active = True
+        allocation.quantity += quantity
+        allocation.reserved_quantity += quantity
+        allocation.full_clean()
+        allocation.save(update_fields=["is_active", "quantity", "reserved_quantity", "updated_at"])
+    return allocation
+
+
+@transaction.atomic
 def transition_commission(*, commission_id, agency, target_status):
     commission = PartnerCommission.objects.select_for_update().get(pk=commission_id, agency=agency)
     allowed = {

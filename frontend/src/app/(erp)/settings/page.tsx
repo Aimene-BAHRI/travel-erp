@@ -13,7 +13,7 @@ export default function SettingsPage() {
       {(user) => (
         <AppShell user={user}>
           <header className="mb-7"><p className="text-sm font-medium text-cyan-800">{uiText("Agency configuration")}</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">{uiText("Agency setup")}</h1><p className="mt-2 text-slate-600">{uiText("Prepare the agency for safe operational and financial use.")}</p></header>
-          <AgencySetupWorkspace />
+          <AgencySetupWorkspace user={user} />
         </AppShell>
       )}
     </AuthGate>

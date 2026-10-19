@@ -1,4 +1,5 @@
 "use client";
+import { flightDefaults, nextOrder } from "./form-defaults";
 import { TripReadinessPanel } from "./trip-readiness-panel";
 
 import { useOperationalText as useUiText } from "@/lib/i18n/operational";
@@ -33,6 +34,9 @@ import { useOperationalText } from "@/lib/i18n/operational";
 import { TripAccommodationAllocation } from "./trip-accommodation-allocation";
 import { TripClosing } from "./trip-closing";
 import { TripCommercialPricing } from "@/features/pricing/trip-commercial-pricing";
+import { TripPricing } from "@/features/pricing/trip-pricing";
+import { TripPartnerTicketReservations } from "./trip-partner-ticket-reservations";
+import { TripBookings } from "./trip-bookings";
 import type {
   TripFlightRecord,
   TripHotelRecord,
@@ -153,12 +157,55 @@ const emptyTransport: TransportDraft = {
 };
 const localDateTime = (value: string) =>
   value ? new Date(value).toISOString().slice(0, 16) : "";
+const localFlightDateTime = (value: string) =>
+  value
+    ? new Date(
+        new Date(value).getTime() - new Date(value).getTimezoneOffset() * 60000,
+      )
+        .toISOString()
+        .slice(0, 16)
+    : "";
+
+function FlightDateHint({
+  start,
+  end,
+  departure,
+  arrival,
+}: {
+  start: string;
+  end: string;
+  departure: string;
+  arrival: string;
+}) {
+  const t = useOperationalText();
+  const outside = [departure, arrival].some(
+    (value) =>
+      value && (value.slice(0, 10) < start || value.slice(0, 10) > end),
+  );
+  const reversed =
+    departure.length >= 16 && arrival.length >= 16 && arrival <= departure;
+  if (!outside && !reversed) return null;
+  return (
+    <p
+      role="status"
+      className="my-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900"
+    >
+      {reversed
+        ? t("Arrival must be after departure.")
+        : t(
+            "Flight dates fall outside the trip dates. Review the flight or the trip dates.",
+          )}{" "}
+      ({start} → {end})
+    </p>
+  );
+}
 
 export type TripTab =
   | "itinerary"
   | "accommodation"
   | "transport"
   | "documents"
+  | "bookings"
   | "commercial"
   | "closing";
 
@@ -337,7 +384,12 @@ export function TripProfile({
           : "/trips/flights/",
         {
           method: editingFlight ? "PATCH" : "POST",
-          body: JSON.stringify({ ...flightDraft, trip: tripId }),
+          body: JSON.stringify({
+            ...flightDraft,
+            departure_at: new Date(flightDraft.departure_at).toISOString(),
+            arrival_at: new Date(flightDraft.arrival_at).toISOString(),
+            trip: tripId,
+          }),
         },
       ),
     onSuccess: () => {
@@ -443,8 +495,13 @@ export function TripProfile({
           }
         : {
             ...emptyStop,
-            order: (stops.data?.results.length ?? 0) + 1,
-            arrival_date: trip.data?.departure_date ?? "",
+            order: nextOrder(stops.data?.results ?? []),
+            arrival_date:
+              [...(stops.data?.results ?? [])].sort(
+                (a, b) => b.order - a.order,
+              )[0]?.departure_date ??
+              trip.data?.departure_date ??
+              "",
             departure_date: trip.data?.return_date ?? "",
           },
     );
@@ -452,6 +509,10 @@ export function TripProfile({
     setStopOpen(true);
   };
   const openHotelForm = (item?: TripHotelRecord) => {
+    const suggestedStop =
+      stops.data?.results.find(
+        (stop) => !hotels.data?.results.some((hotel) => hotel.stop === stop.id),
+      ) ?? stops.data?.results[0];
     setEditingHotel(item ?? null);
     setHotelDraft(
       item
@@ -461,7 +522,13 @@ export function TripProfile({
             is_primary: item.is_primary,
             notes: item.notes,
           }
-        : { ...emptyHotel, stop: stops.data?.results[0]?.id ?? "" },
+        : {
+            ...emptyHotel,
+            stop: suggestedStop?.id ?? "",
+            is_primary: !hotels.data?.results.some(
+              (hotel) => hotel.stop === suggestedStop?.id && hotel.is_primary,
+            ),
+          },
     );
     saveHotel.reset();
     setHotelOpen(true);
@@ -478,13 +545,22 @@ export function TripProfile({
             destination_city: item.destination_city,
             origin_airport_code: item.origin_airport_code,
             destination_airport_code: item.destination_airport_code,
-            departure_at: localDateTime(item.departure_at),
-            arrival_at: localDateTime(item.arrival_at),
+            departure_at: localFlightDateTime(item.departure_at),
+            arrival_at: localFlightDateTime(item.arrival_at),
             booking_class: item.booking_class,
             order: item.order,
             notes: item.notes,
           }
-        : { ...emptyFlight, order: (flights.data?.results.length ?? 0) + 1 },
+        : {
+            ...emptyFlight,
+            ...(trip.data
+              ? flightDefaults(
+                  trip.data,
+                  stops.data?.results ?? [],
+                  flights.data?.results ?? [],
+                )
+              : {}),
+          },
     );
     saveFlight.reset();
     setFlightOpen(true);
@@ -601,7 +677,17 @@ export function TripProfile({
 
       {activeTab === "closing" && <TripClosing tripId={tripId} />}
 
-      {activeTab === "commercial" && <TripCommercialPricing tripId={tripId} />}
+      {activeTab === "commercial" && (
+        <div className="space-y-6">
+          <div id="hotel-pricing">
+            <TripPricing tripId={tripId} />
+          </div>
+          <TripCommercialPricing tripId={tripId} />
+          <TripPartnerTicketReservations tripId={tripId} />
+        </div>
+      )}
+
+      {activeTab === "bookings" && <TripBookings tripId={tripId} />}
 
       {activeTab === "itinerary" && (
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -713,6 +799,12 @@ export function TripProfile({
               <ul className="divide-y divide-slate-100">
                 {flights.data.results.map((flight) => (
                   <li key={flight.id} className="p-5">
+                    <FlightDateHint
+                      start={trip.data.departure_date}
+                      end={trip.data.return_date}
+                      departure={localFlightDateTime(flight.departure_at)}
+                      arrival={localFlightDateTime(flight.arrival_at)}
+                    />
                     <div className="flex items-center justify-between">
                       <span className="font-semibold">
                         {flight.airline_name} {flight.flight_number}
@@ -1084,6 +1176,38 @@ export function TripProfile({
                 setStopDraft({ ...stopDraft, departure_date: v })
               }
             />
+            <Field label={t("Number of nights")}>
+              <input
+                type="number"
+                min={0}
+                className="input"
+                value={
+                  stopDraft.arrival_date && stopDraft.departure_date
+                    ? Math.max(
+                        0,
+                        Math.round(
+                          (Date.parse(stopDraft.departure_date) -
+                            Date.parse(stopDraft.arrival_date)) /
+                            86400000,
+                        ),
+                      )
+                    : ""
+                }
+                onChange={(event) => {
+                  if (!stopDraft.arrival_date || event.target.value === "")
+                    return;
+                  const date = new Date(`${stopDraft.arrival_date}T00:00:00Z`);
+                  date.setUTCDate(
+                    date.getUTCDate() + Number(event.target.value),
+                  );
+                  if (!Number.isNaN(date.getTime()))
+                    setStopDraft({
+                      ...stopDraft,
+                      departure_date: date.toISOString().slice(0, 10),
+                    });
+                }}
+              />
+            </Field>
             <Field label={t("Order")}>
               <input
                 required
@@ -1132,7 +1256,15 @@ export function TripProfile({
               className="input"
               value={hotelDraft.stop}
               onChange={(e) =>
-                setHotelDraft({ ...hotelDraft, stop: e.target.value })
+                setHotelDraft({
+                  ...hotelDraft,
+                  stop: e.target.value,
+                  hotel: "",
+                  is_primary: !hotels.data?.results.some(
+                    (hotel) =>
+                      hotel.stop === e.target.value && hotel.is_primary,
+                  ),
+                })
               }
             >
               {stops.data?.results.map((x) => (
@@ -1152,11 +1284,25 @@ export function TripProfile({
               }
             >
               <option value="">{t("Select hotel")}</option>
-              {hotelOptions.data?.results.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.name} · {x.city_name}
-                </option>
-              ))}
+              {hotelOptions.data?.results
+                .filter(
+                  (hotel) =>
+                    hotel.id === editingHotel?.hotel ||
+                    (hotel.city ===
+                      stops.data?.results.find(
+                        (stop) => stop.id === hotelDraft.stop,
+                      )?.city &&
+                      !hotels.data?.results.some(
+                        (link) =>
+                          link.stop === hotelDraft.stop &&
+                          link.hotel === hotel.id,
+                      )),
+                )
+                .map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.name} · {x.city_name}
+                  </option>
+                ))}
             </select>
           </Field>
           <label className="flex items-center gap-2 text-sm font-medium">
@@ -1198,6 +1344,37 @@ export function TripProfile({
           }}
           className="space-y-4"
         >
+          <p className="text-sm text-slate-600">
+            {t(
+              "Suggested dates and route remain editable. Enter the actual flight times in your local time zone.",
+            )}{" "}
+            ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+          </p>
+          <FlightDateHint
+            start={trip.data.departure_date}
+            end={trip.data.return_date}
+            departure={flightDraft.departure_at}
+            arrival={flightDraft.arrival_at}
+          />
+          {!editingFlight && (
+            <button
+              type="button"
+              className="text-sm font-medium text-cyan-800 underline"
+              onClick={() =>
+                setFlightDraft({
+                  ...flightDraft,
+                  ...flightDefaults(
+                    trip.data,
+                    stops.data?.results ?? [],
+                    flights.data?.results ?? [],
+                    flightDraft.direction,
+                  ),
+                })
+              }
+            >
+              {t("Use trip dates and suggested route")}
+            </button>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("Airline")}>
               <select
@@ -1301,31 +1478,43 @@ export function TripProfile({
                 }
               />
             </Field>
-            <Field label={t("Departure time")}>
-              <input
-                required
-                type="datetime-local"
-                className="input"
-                value={flightDraft.departure_at}
-                onChange={(e) =>
-                  setFlightDraft({
-                    ...flightDraft,
-                    departure_at: e.target.value,
-                  })
-                }
-              />
-            </Field>
-            <Field label={t("Arrival time")}>
-              <input
-                required
-                type="datetime-local"
-                className="input"
-                value={flightDraft.arrival_at}
-                onChange={(e) =>
-                  setFlightDraft({ ...flightDraft, arrival_at: e.target.value })
-                }
-              />
-            </Field>
+            {(["departure_at", "arrival_at"] as const).map((key) => (
+              <Field
+                key={key}
+                label={t(
+                  key === "departure_at" ? "Departure time" : "Arrival time",
+                )}
+              >
+                <div className="flex gap-2">
+                  <input
+                    required
+                    aria-label={t("Date")}
+                    type="date"
+                    className="input"
+                    value={flightDraft[key].slice(0, 10)}
+                    onChange={(e) =>
+                      setFlightDraft({
+                        ...flightDraft,
+                        [key]: `${e.target.value}T${flightDraft[key].slice(11)}`,
+                      })
+                    }
+                  />
+                  <input
+                    required
+                    aria-label={t("Time")}
+                    type="time"
+                    className="input"
+                    value={flightDraft[key].slice(11)}
+                    onChange={(e) =>
+                      setFlightDraft({
+                        ...flightDraft,
+                        [key]: `${flightDraft[key].slice(0, 10)}T${e.target.value}`,
+                      })
+                    }
+                  />
+                </div>
+              </Field>
+            ))}
             <Field label={t("Booking class")}>
               <input
                 className="input"

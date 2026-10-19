@@ -119,11 +119,32 @@ def calculate_hotel_package(package, counts=None):
     unit_prices = {}
     breakdown = {}
     for key, category, bed in [("adult", "ADT", "REQUIRED"), ("child_bed", "CHD", "REQUIRED"), ("child_no_bed", "CHD", "NOT_REQUIRED"), ("infant", "INF", "NOT_REQUIRED")]:
-        result = resolve_traveler_price(trip=package.trip, trip_hotel=price.trip_hotel, room_type=price.room_type, passenger_category=SimpleNamespace(code=category), bed_requirement=bed)
-        if result.currency_id != price.currency_id:
-            raise ValidationError("Package and fixed trip prices must use the same currency.")
-        unit_prices[key] = result.amount
-        breakdown[key] = {"base": str(result.base_amount), "discount": str(result.discount_amount), "selling": str(result.amount), "hotel": str(price.trip_hotel_id), "room_type": str(price.room_type_id)}
+        if key == "child_no_bed":
+            resolved = resolve_traveler_price(trip=package.trip, trip_hotel=price.trip_hotel, room_type=price.room_type, passenger_category=SimpleNamespace(code=category), bed_requirement=bed)
+            unit_prices[key] = resolved.amount
+            breakdown[key] = {"base": str(resolved.base_amount), "discount": str(resolved.discount_amount), "selling": str(resolved.amount), "hotel": str(price.trip_hotel_id), "room_type": None}
+            continue
+        if key == "infant":
+            resolved = resolve_traveler_price(trip=package.trip, trip_hotel=price.trip_hotel, room_type=price.room_type, passenger_category=SimpleNamespace(code=category), bed_requirement=bed)
+            unit_prices[key] = resolved.amount
+            breakdown[key] = {"base": str(resolved.base_amount), "discount": str(resolved.discount_amount), "selling": str(resolved.amount), "hotel": str(price.trip_hotel_id), "room_type": None}
+            continue
+        override = getattr(package, f"override_{key}")
+        if override is not None:
+            amount = override
+            base_amount = price.amount if key == "adult" else amount
+            discount = max(base_amount - amount, Decimal("0"))
+            currency_id = price.currency_id
+        else:
+            result = resolve_traveler_price(trip=package.trip, trip_hotel=price.trip_hotel, room_type=price.room_type, passenger_category=SimpleNamespace(code=category), bed_requirement=bed)
+            if result.currency_id != price.currency_id:
+                raise ValidationError("Package and fixed trip prices must use the same currency.")
+            amount = result.amount
+            base_amount = result.base_amount
+            discount = result.discount_amount
+            currency_id = result.currency_id
+        unit_prices[key] = amount
+        breakdown[key] = {"base": str(base_amount), "discount": str(discount), "selling": str(amount), "hotel": str(price.trip_hotel_id), "room_type": str(price.room_type_id)}
     party = {key: int((counts or {}).get(key, 0)) for key in CATEGORIES}
     if any(n < 0 or n > 99 for n in party.values()) or (counts is not None and party["adult"] < 1):
         raise ValidationError("Traveler counts are invalid.")

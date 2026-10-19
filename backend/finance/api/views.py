@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.core.exceptions import ValidationError as DjangoValidationError
 from num2words import num2words
 from rest_framework import filters, mixins, serializers, status, viewsets
@@ -11,6 +12,7 @@ from finance.models import AgencyCashEntry, ExchangeRate, ExpensePayment, Financ
 from finance.services import (
     booking_financial_summary,
     cash_flow_summary,
+    correct_cash_entry,
     post_cash_entry,
     post_expense_payment,
     post_transaction,
@@ -60,6 +62,30 @@ class AgencyCashEntryViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mix
         data.is_valid(raise_exception=True)
         entry = post_cash_entry(agency=request.user.agency, actor=request.user, **data.validated_data)
         return Response(self.get_serializer(entry).data, status=status.HTTP_201_CREATED)
+
+    @transaction.atomic
+    def partial_update(self, request, pk=None):
+        original = self.get_object()
+        merged = dict(self.get_serializer(original).data)
+        merged.update(request.data)
+        data = AgencyCashEntryInputSerializer(data=merged, context={"request": request})
+        data.is_valid(raise_exception=True)
+        try:
+            entry = correct_cash_entry(agency=request.user.agency, actor=request.user, entry_id=original.pk, replacement=data.validated_data)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from exc
+        record_event(actor=request.user, action="cash_entry.updated", target_type="finance.AgencyCashEntry", target_id=original.pk, metadata={"replacement": str(entry.pk)}, request=request)
+        return Response(self.get_serializer(entry).data)
+
+    @transaction.atomic
+    def destroy(self, request, pk=None):
+        original = self.get_object()
+        try:
+            correct_cash_entry(agency=request.user.agency, actor=request.user, entry_id=original.pk)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from exc
+        record_event(actor=request.user, action="cash_entry.deleted", target_type="finance.AgencyCashEntry", target_id=original.pk, request=request)
+        return Response(status=204)
 
     @action(detail=False, methods=["get"])
     def report(self, request):
@@ -209,7 +235,7 @@ class FinancialTransactionViewSet(
         return Response(
             {
                 "receipt_number": entry.number,
-                "agency_name": entry.agency.name,
+                "agency_name": entry.agency.legal_name,
                 "agency_logo": (
                     request.build_absolute_uri(entry.agency.logo.url) if entry.agency.logo else None
                 ),

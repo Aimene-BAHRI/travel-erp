@@ -19,6 +19,7 @@ import type { Country, Paginated } from "@/features/reference/types";
 import { apiRequest } from "@/lib/api/client";
 
 import { PassportScanAssistant } from "./passport-scan-assistant";
+import { PassportImage } from "./passport-image";
 import type { DocumentRecord, PassportDetail, Traveler } from "./types";
 
 type PassportDraft = Omit<PassportDetail, "id" | "passport_image">;
@@ -384,6 +385,7 @@ export function TravelerProfile({
           </form>
         )}
       </section>
+      <PassportImage url={traveler.data.current_passport?.passport_image_url} />
       <section className="rounded-xl border bg-white">
         <header className="flex items-center justify-between border-b p-5">
           <div>

@@ -130,6 +130,8 @@ AUTH_COOKIE_SAMESITE = "Lax"
 AUTH_COOKIE_PATH = "/"
 CORS_ALLOW_CREDENTIALS = True
 MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024
+# Booking intake sends a full scan and cropped portrait as validated base64 images.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 24 * 1024 * 1024
 PRIVATE_PASSPORT_ROOT = BASE_DIR / "private-passports"
 ALLOWED_DOCUMENT_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"]
 

@@ -23,6 +23,7 @@ from trips.models import (
 from trips.services import (
     assign_traveler_to_room,
     close_trip,
+    close_overdue_open_trips,
     reopen_trip_closing,
     reorder_trip_stops,
     start_trip_closing,
@@ -74,6 +75,7 @@ class TripViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset().filter(agency=user.agency)
         if user.branch_id and not user.has_perm("trips.view_all_trips"):
             queryset = queryset.filter(branch=user.branch)
+        close_overdue_open_trips(queryset=queryset)
         trip_status = self.request.query_params.get("status")
         return queryset.filter(status=trip_status) if trip_status else queryset
 
@@ -215,7 +217,7 @@ class TripViewSet(viewsets.ModelViewSet):
             try:
                 result["price"] = asdict(resolve_traveler_price(trip=trip, trip_hotel=price.trip_hotel if price else None, room_type=price.room_type if price else None, passenger_category=SimpleNamespace(code=code), bed_requirement=bed))
             except DjangoValidationError as exc:
-                raise serializers.ValidationError(exc.messages) from exc
+                result["price_error"] = " ".join(exc.messages)
         return Response(result)
 
     @action(detail=True, methods=["get"], url_path="readiness")

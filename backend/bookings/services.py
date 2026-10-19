@@ -42,6 +42,8 @@ def _sync_draft_total(booking):
     total = sum((charge.final_amount for charge in charges), Decimal("0")).quantize(
         Decimal("0.0001")
     )
+    from .commercial import extra_total
+    total += extra_total(booking)
     accounting_total = (total * booking.accounting_exchange_rate).quantize(Decimal("0.0001"))
     Booking.objects.filter(pk=booking.pk, status=Booking.Status.DRAFT).update(
         total_amount=total, accounting_total_amount=accounting_total
@@ -314,9 +316,21 @@ def create_booking_draft(
     new_customer=None,
     notes="",
     expected_travelers=1,
+    partner=None,
+    lead_source=None,
+    source_detail='',
 ):
     if expected_travelers < 1:
         raise ValidationError("Expected travelers must be at least one.")
+    if partner is not None:
+        if partner.agency_id != agency.pk or not partner.is_active or partner.kind != "COMPANY":
+            raise ValidationError("Select an active partner agency belonging to this agency.")
+        if customer is not None or new_customer is not None:
+            raise ValidationError("A partner booking uses the partner's contact details.")
+        # Retain the existing customer-based financial interface, with an explicit partner source.
+        previous = Booking.objects.filter(agency=agency, branch=branch, partner=partner).select_related("customer").first()
+        customer = previous.customer if previous else None
+        new_customer = {"kind": "COMPANY", "company_name": partner.name, "phone": partner.phone, "email": partner.email}
     if customer is None:
         customer = Customer(agency=agency, branch=branch, created_by=actor, **new_customer)
         customer.full_clean()
@@ -325,6 +339,8 @@ def create_booking_draft(
         agency=agency,
         branch=branch,
         code=_booking_code(agency),
+        partner=partner,
+        commercial_details=({'source': 'PARTNER' if partner else lead_source, 'source_detail': source_detail} if lead_source else {}),
         customer=customer,
         trip=trip,
         currency=currency,
@@ -601,6 +617,10 @@ def confirm_booking_draft(*, booking_id, agency):
     booking.trip = Trip.objects.select_for_update().get(pk=booking.trip_id)
     if not booking_capacity(booking)["has_capacity"]:
         raise ValidationError("The trip does not have enough remaining places for this booking.")
+    if booking.commercial_details.get('payment_plan'):
+        from .readiness import booking_readiness
+        if not booking_readiness(booking)['is_ready']:
+            raise ValidationError('Complete valid passports and required room assignments before confirming the client agreement.')
     if not (booking.customer.phone.strip() or booking.customer.email.strip()):
         raise ValidationError("Add a phone number or email for the booking customer.")
     from reference.models import PassengerCategory
@@ -617,6 +637,8 @@ def confirm_booking_draft(*, booking_id, agency):
         if traveler_link.passenger_category_id != passenger_category.id:
             traveler_link.passenger_category = passenger_category
             traveler_link.save(update_fields=["passenger_category"])
+    from finance.airline_rules import validate_airline_booking
+    validate_airline_booking(booking)
     charges = list(
         BookingTravelerCharge.objects.filter(booking_traveler__booking=booking)
         .select_related(
@@ -638,6 +660,7 @@ def confirm_booking_draft(*, booking_id, agency):
             charge.source_price_id
             and charge.source_price.passenger_category_id
             != charge.booking_traveler.passenger_category_id
+            and not (charge.pricing_snapshot.get('passenger_category') == 'CHD' and charge.source_price.passenger_category.code.upper() == 'ADT')
         ):
             selected_price = charge.source_price
             required_category = charge.booking_traveler.passenger_category
@@ -672,7 +695,9 @@ def confirm_booking_draft(*, booking_id, agency):
         if issues:
             raise ValidationError(f"{link.traveler}: {'; '.join(issues)}")
 
-    total = sum((item.final_amount for item in charges), Decimal("0"))
+    from .commercial import extra_total, validate_payment_plan
+    total = sum((item.final_amount for item in charges), Decimal("0")) + extra_total(booking)
+    validate_payment_plan(booking, total)
     booking.total_amount = total.quantize(Decimal("0.0001"))
     rate = booking.accounting_exchange_rate
     booking.accounting_total_amount = (booking.total_amount * rate).quantize(Decimal("0.0001"))
@@ -702,6 +727,9 @@ def confirm_booking_draft(*, booking_id, agency):
     payload = _snapshot_payload(booking, None, accommodations, flights)
     payload["source"] = "DIRECT"
     payload["travelers"] = []
+    payload["commercial_details"] = booking.commercial_details
+    payload["partner"] = {"id": str(booking.partner_id), "name": booking.partner.name} if booking.partner_id else None
+    payload["assigned_rooms"] = [{"traveler": str(a.booking_traveler_id), "hotel": a.room.trip_hotel.hotel.name, "room_type": a.room.room_type.name, "room": a.room.label} for link in travelers for a in link.trip_room_assignments.select_related("room__trip_hotel__hotel", "room__room_type")]
     for item in travelers:
         passport = item.traveler.passports.filter(status="CURRENT").first()
         validity = (
@@ -719,6 +747,8 @@ def confirm_booking_draft(*, booking_id, agency):
                 "gender": item.traveler.gender,
                 "passenger_category": item.passenger_category.name,
                 "passenger_category_code": item.passenger_category.code,
+                "seat_required": item.seat_required,
+                "service_type": item.service_type,
                 "category_reference_date": booking.trip.return_date.isoformat(),
                 "is_customer_contact": item.is_customer_contact,
                 "passport": (
@@ -805,6 +835,9 @@ def add_booking_traveler(
     )
     link.full_clean()
     link.save()
+    if booking.status == Booking.Status.CONFIRMED:
+        from finance.airline_rules import validate_airline_booking
+        validate_airline_booking(booking)
     return link
 
 

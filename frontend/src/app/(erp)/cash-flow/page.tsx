@@ -4,7 +4,7 @@ import { useOperationalText as useUiText } from "@/lib/i18n/operational";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthGate } from "@/features/auth/auth-gate";
-import { CashFlowWorkspace } from "@/features/finance/cash-flow-workspace";
+import { MoneyFlowWorkspace } from "@/features/finance/airline-workspace";
 
 export default function CashFlowPage() {
   const uiText = useUiText();
@@ -23,7 +23,7 @@ export default function CashFlowPage() {
               {uiText("تابع كل المداخيل والمصاريف الخاصة بالوكالة والرحلات.")}
             </p>
           </header>
-          <CashFlowWorkspace />
+          <MoneyFlowWorkspace />
         </AppShell>
       )}
     </AuthGate>

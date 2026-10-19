@@ -121,6 +121,38 @@ class TripOccupancyPackage(models.Model):
             calculate_package(self)
 
 
+class TripHotelFixedPrice(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    agency = models.ForeignKey(
+        "organizations.Agency", on_delete=models.PROTECT, related_name="trip_hotel_fixed_prices"
+    )
+    trip_hotel = models.OneToOneField(
+        "trips.TripHotel", on_delete=models.CASCADE, related_name="fixed_prices"
+    )
+    child_without_bed = models.DecimalField(max_digits=18, decimal_places=4)
+    infant = models.DecimalField(max_digits=18, decimal_places=4)
+    currency = models.ForeignKey(
+        "reference.Currency", on_delete=models.PROTECT, related_name="trip_hotel_fixed_prices"
+    )
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(child_without_bed__gte=0), name="trip_hotel_child_no_bed_gte_0"),
+            models.CheckConstraint(condition=Q(infant__gte=0), name="trip_hotel_infant_gte_0"),
+        ]
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        trip = self.trip_hotel.stop.trip if self.trip_hotel_id else None
+        if self.agency_id and trip and trip.agency_id != self.agency_id:
+            errors["trip_hotel"] = "The trip hotel must belong to the same agency."
+        if self.currency_id and not self.currency.is_active:
+            errors["currency"] = "The currency must be active."
+        if errors:
+            raise ValidationError(errors)
+
+
 class Promotion(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     agency = models.ForeignKey(

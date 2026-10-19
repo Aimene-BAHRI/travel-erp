@@ -27,7 +27,7 @@ class TravelerFlowInput(serializers.Serializer):
     gender = serializers.ChoiceField(choices=["M", "F", "X"], default="X")
     passport = serializers.DictField(required=False)
     price_mode = serializers.ChoiceField(
-        choices=["INCLUDED", "ADDITIONAL", "EXISTING"], default="INCLUDED"
+        choices=["INCLUDED", "ADDITIONAL", "EXISTING", "REPLACE_DRAFT"], default="INCLUDED"
     )
     amount = serializers.DecimalField(
         max_digits=18, decimal_places=4, min_value=Decimal("0"), required=False
@@ -39,6 +39,8 @@ class TravelerFlowInput(serializers.Serializer):
     service_type = serializers.ChoiceField(choices=["PACK", "VISA_ONLY", "TICKET_ONLY", "CUSTOM"], required=False)
     included_stops = serializers.ListField(child=serializers.UUIDField(), required=False)
     rooms = serializers.ListField(child=serializers.UUIDField(), default=list)
+    photo = serializers.DictField(required=False)
+    passport_scan = serializers.DictField(required=False)
 
 
 @transaction.atomic
@@ -94,6 +96,13 @@ def save_traveler_flow(*, booking_id, agency, request, data):
             raise ValidationError("Selected service stays must belong to this trip.")
         link.included_stops.set(stops)
     if data["names_only"]:
+        if data.get("passport_scan"):
+            raise serializers.ValidationError({"passport_scan": "Complete passport details to save the full passport image."})
+        if booking.status == Booking.Status.CONFIRMED:
+            from finance.airline_rules import validate_airline_booking
+            validate_airline_booking(booking)
+        from .passport_photo import save_cropped_photo
+        save_cropped_photo(person, data.get("photo"), request)
         record_event(
             actor=request.user,
             action="booking.traveler_names_saved",
@@ -122,8 +131,18 @@ def save_traveler_flow(*, booking_id, agency, request, data):
     )
     link.bed_requirement = "NOT_REQUIRED" if link.passenger_category.code.upper() == "INF" else data.get("bed_requirement", link.bed_requirement)
     link.save(update_fields=["passenger_category", "bed_requirement"])
+    if not booking_capacity(booking)["has_capacity"]:
+        raise ValidationError("The trip does not have enough remaining places.")
+    if booking.status == Booking.Status.CONFIRMED:
+        from finance.airline_rules import validate_airline_booking
+        validate_airline_booking(booking)
     resolved = None
     price = None
+    if data["price_mode"] == "REPLACE_DRAFT":
+        if booking.status != Booking.Status.DRAFT or booking.financial_transactions.exists():
+            raise ValidationError("Only an unpaid draft can have its traveler price replaced.")
+        link.charges.all().delete()
+        data["price_mode"] = "INCLUDED"
     if data.get("use_trip_price") and not link.charges.exists():
         from pricing.models import TripHotelPrice
         from pricing.services import resolve_traveler_price
@@ -224,6 +243,8 @@ def save_traveler_flow(*, booking_id, agency, request, data):
         assign_traveler_to_room(
             room_id=room.pk, booking_traveler=link, agency=agency, actor=request.user
         )
+    if booking.status == Booking.Status.DRAFT:
+        link.trip_room_assignments.exclude(stop_id__in=required).delete()
     record_event(
         actor=request.user,
         action="booking.traveler_completed",
@@ -236,4 +257,8 @@ def save_traveler_flow(*, booking_id, agency, request, data):
         },
     )
     booking.refresh_from_db()
+    from .passport_photo import save_cropped_photo
+    save_cropped_photo(person, data.get("photo"), request)
+    from .passport_photo import save_passport_image
+    save_passport_image(passport.instance, data.get("passport_scan"), request)
     return booking

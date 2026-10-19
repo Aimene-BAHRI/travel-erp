@@ -46,6 +46,7 @@ const copy = {
 };
 
 const eventLabels: Record<string, { ar: string; en: string }> = {
+  AIRLINE_DUE: { ar: "\u0627\u0633\u062a\u062d\u0642\u0627\u0642 \u0642\u0633\u0637 \u0627\u0644\u0637\u064a\u0631\u0627\u0646", en: "Airline installment due" },
   BOOKING_BALANCE: {
     ar: "رصيد الحجز قبل المغادرة",
     en: "Booking balance before departure",
@@ -171,7 +172,8 @@ export function NotificationSettings() {
                 className="w-24 rounded border px-2 py-1 text-left"
                 type="number"
                 min="0"
-                value={rule.lead_days}
+                disabled={rule.event === "AIRLINE_DUE"}
+                value={rule.event === "AIRLINE_DUE" ? 0 : rule.lead_days}
                 onChange={(event) =>
                   save.mutate({
                     ...rule,

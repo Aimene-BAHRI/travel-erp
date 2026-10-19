@@ -33,6 +33,7 @@ export function NotificationCenter() {
   const t = copy[locale];
   const notes = useQuery({
     queryKey: ["notifications", "unread"],
+    refetchInterval: 60000,
     queryFn: () => apiRequest<Paginated<Note>>("/notifications/?view=unread"),
   });
   const read = useMutation({

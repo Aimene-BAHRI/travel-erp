@@ -1,6 +1,8 @@
+import re
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import serializers
 
@@ -75,10 +77,39 @@ class TripCostComponentSerializer(CleanModelSerializer):
 
 class TripOccupancyPackageSerializer(CleanModelSerializer):
     calculated = serializers.SerializerMethodField()
-
+    code = serializers.CharField(required=False, allow_blank=True)
+    name = serializers.CharField(required=False, allow_blank=True)
+    trip_hotel = serializers.PrimaryKeyRelatedField(
+        queryset=TripHotel.objects.none(), write_only=True, required=False
+    )
+    room_type = serializers.PrimaryKeyRelatedField(
+        queryset=RoomType.objects.none(), write_only=True, required=False
+    )
+    adult_amount = serializers.DecimalField(
+        max_digits=18, decimal_places=4, min_value=Decimal("0"), write_only=True, required=False
+    )
+    currency = serializers.PrimaryKeyRelatedField(
+        queryset=Currency.objects.none(), write_only=True, required=False
+    )
     def validate(self, attrs):
-        if self.instance is None and not attrs.get("adult_price"):
-            raise serializers.ValidationError({"adult_price": "Select a hotel-specific adult package price."})
+        trip = attrs.get("trip", self.instance.trip if self.instance else None)
+        adult_price = attrs.get("adult_price")
+        trip_hotel = attrs.get("trip_hotel")
+        room_type = attrs.get("room_type")
+        adult_amount = attrs.get("adult_amount")
+        currency = attrs.get("currency")
+        if not adult_price and self.instance:
+            adult_price = self.instance.adult_price
+        if not adult_price and not all((trip_hotel, room_type, adult_amount, currency)):
+            raise serializers.ValidationError({"trip_hotel": "Choose a hotel, room, adult price, and currency."})
+        if trip_hotel and trip and trip.pricing_currency_id and currency and trip.pricing_currency_id != currency.pk:
+            raise serializers.ValidationError({"currency": "Package hotel prices must use the trip pricing currency."})
+        if trip_hotel and trip and trip_hotel.stop.trip_id != trip.pk:
+            raise serializers.ValidationError({"trip_hotel": "Select a hotel from this trip."})
+        if room_type and trip and room_type.agency_id != trip.agency_id:
+            raise serializers.ValidationError({"room_type": "Select a room type from this agency."})
+        if adult_price and trip and adult_price.trip_hotel.stop.trip_id != trip.pk:
+            raise serializers.ValidationError({"adult_price": "Select an adult price from this trip."})
         return super().validate(attrs)
 
     class Meta:
@@ -87,6 +118,10 @@ class TripOccupancyPackageSerializer(CleanModelSerializer):
             "id",
             "trip",
             "adult_price",
+            "trip_hotel",
+            "room_type",
+            "adult_amount",
+            "currency",
             "code",
             "name",
             "makkah_occupancy",
@@ -111,6 +146,9 @@ class TripOccupancyPackageSerializer(CleanModelSerializer):
         if request and request.user.is_authenticated:
             self.fields["trip"].queryset = Trip.objects.filter(agency=request.user.agency)
             self.fields["adult_price"].queryset = TripHotelPrice.objects.filter(agency=request.user.agency, scope="TRIP_PACKAGE", passenger_category__code__iexact="adt", price_kind="STANDARD")
+            self.fields["trip_hotel"].queryset = TripHotel.objects.filter(stop__trip__agency=request.user.agency)
+            self.fields["room_type"].queryset = RoomType.objects.filter(agency=request.user.agency, is_active=True)
+            self.fields["currency"].queryset = Currency.objects.filter(agency_settings__agency=request.user.agency, agency_settings__is_enabled=True)
 
     def get_calculated(self, obj):
         from pricing.calculator import calculate_package
@@ -120,10 +158,77 @@ class TripOccupancyPackageSerializer(CleanModelSerializer):
         except DjangoValidationError:
             return None
 
+    def _resolve_adult_price(self, validated_data):
+        trip_hotel = validated_data.pop("trip_hotel", None)
+        room_type = validated_data.pop("room_type", None)
+        adult_amount = validated_data.pop("adult_amount", None)
+        currency = validated_data.pop("currency", None)
+        if not trip_hotel:
+            return validated_data.pop("adult_price", None)
+        if room_type is None or adult_amount is None or currency is None:
+            raise serializers.ValidationError({"trip_hotel": "Choose a hotel, room, adult price, and currency."})
+        from reference.models import PassengerCategory
+
+        adult = PassengerCategory.objects.get(code__iexact="ADT", is_system=True, is_active=True)
+        price, _ = TripHotelPrice.objects.get_or_create(
+            agency=validated_data["trip"].agency,
+            trip_hotel=trip_hotel,
+            room_type=room_type,
+            passenger_category=adult,
+            bed_basis=TripHotelPrice.BedBasis.STANDARD,
+            price_kind=TripHotelPrice.PriceKind.STANDARD,
+            scope="TRIP_PACKAGE",
+            defaults={"amount": adult_amount, "currency": currency},
+        )
+        if price.amount != adult_amount or price.currency_id != currency.pk:
+            price.amount = adult_amount
+            price.currency = currency
+            price.full_clean()
+            price.save(update_fields=["amount", "currency", "updated_at"])
+        validated_data["adult_price"] = price
+        return validated_data
+
+    @staticmethod
+    def _generated_identity(trip_hotel, room_type, trip, current=None):
+        hotel_name = trip_hotel.hotel.name
+        name = f"{hotel_name} / {room_type.name}"[:80]
+        base = re.sub(r"[^a-z0-9]+", "-", f"{hotel_name}-{room_type.name}".lower()).strip("-")[:24] or "package"
+        existing = TripOccupancyPackage.objects.filter(trip=trip, code__startswith=base)
+        if current:
+            existing = existing.exclude(pk=current.pk)
+        used = set(existing.values_list("code", flat=True))
+        code = base
+        suffix = 2
+        while code in used:
+            tail = f"-{suffix}"
+            code = f"{base[:30-len(tail)]}{tail}"
+            suffix += 1
+        return code, name
+
+    @transaction.atomic
     def create(self, validated_data):
+        trip_hotel = validated_data.get("trip_hotel")
+        room_type = validated_data.get("room_type")
+        trip = validated_data.get("trip")
+        validated_data = self._resolve_adult_price(validated_data)
+        if trip_hotel and room_type and trip:
+            validated_data["code"], validated_data["name"] = self._generated_identity(trip_hotel, room_type, trip)
         return self._save_clean(self.Meta.model(**validated_data))
 
+    @transaction.atomic
     def update(self, instance, validated_data):
+        validated_data.setdefault("trip", instance.trip)
+        selected_price = validated_data.get("adult_price", instance.adult_price)
+        trip_hotel = validated_data.get("trip_hotel") or (selected_price.trip_hotel if selected_price else None)
+        room_type = validated_data.get("room_type") or (selected_price.room_type if selected_price else None)
+        if trip_hotel and room_type and "adult_amount" not in validated_data:
+            validated_data["trip_hotel"] = trip_hotel
+            validated_data["room_type"] = room_type
+            validated_data["adult_amount"] = selected_price.amount
+            validated_data["currency"] = selected_price.currency
+        self._resolve_adult_price(validated_data)
+        if trip_hotel and room_type:
+            validated_data["code"], validated_data["name"] = self._generated_identity(trip_hotel, room_type, instance.trip, instance)
         for field, value in validated_data.items():
             setattr(instance, field, value)
         return self._save_clean(instance)
@@ -161,6 +266,7 @@ class PromotionSerializer(CleanModelSerializer):
 
 
 class TripHotelPriceSerializer(CleanModelSerializer):
+    passenger_category_code = serializers.CharField(source="passenger_category.code", read_only=True)
     hotel_name = serializers.CharField(source="trip_hotel.hotel.name", read_only=True)
     room_type_name = serializers.CharField(source="room_type.name", read_only=True)
     passenger_category_name = serializers.CharField(
@@ -179,6 +285,7 @@ class TripHotelPriceSerializer(CleanModelSerializer):
             "room_type_name",
             "passenger_category",
             "passenger_category_name",
+            "passenger_category_code",
             "bed_basis",
             "price_kind",
             "promotion",

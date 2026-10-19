@@ -128,6 +128,8 @@ class Booking(models.Model):
     source_quote = models.OneToOneField(
         "pricing.Quote", on_delete=models.PROTECT, related_name="booking", null=True, blank=True
     )
+    partner = models.ForeignKey("partners.Partner", on_delete=models.PROTECT, null=True, blank=True, related_name="bookings")
+    commercial_details = models.JSONField(default=dict, blank=True)
     currency = models.ForeignKey(
         "reference.Currency", on_delete=models.PROTECT, related_name="bookings"
     )
@@ -180,6 +182,8 @@ class Booking(models.Model):
                 "customer_id",
                 "trip_id",
                 "source_quote_id",
+                "partner_id",
+                "commercial_details",
                 "currency_id",
                 "total_amount",
                 "accounting_currency_id",
@@ -198,7 +202,7 @@ class Booking(models.Model):
     def clean(self):
         super().clean()
         errors = {}
-        for field_name in ["branch", "customer", "trip"]:
+        for field_name in ["branch", "customer", "trip", "partner"]:
             value = getattr(self, field_name, None)
             if value and value.agency_id != self.agency_id:
                 errors[field_name] = f"The {field_name} must belong to the same agency."

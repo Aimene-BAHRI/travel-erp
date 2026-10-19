@@ -53,6 +53,7 @@ export function NotificationInbox() {
 
   const notes = useQuery({
     queryKey: ["notifications", view],
+    refetchInterval: 60000,
     queryFn: () => apiRequest<Paginated<NotificationRecord>>(`/notifications/?view=${view}`),
   });
   const groupedNotes = groupNotifications(notes.data?.results ?? []);

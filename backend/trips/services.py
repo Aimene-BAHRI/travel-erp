@@ -46,6 +46,19 @@ def transition_trip(*, trip_id, agency, target_status):
     return trip
 
 
+@transaction.atomic
+def close_overdue_open_trips(*, queryset=None):
+    """Stop accepting bookings for open trips once their return date has passed."""
+    today = timezone.localdate()
+    overdue = Trip.objects.select_for_update().filter(
+        status=Trip.Status.OPEN,
+        return_date__lt=today,
+    )
+    if queryset is not None:
+        overdue = overdue.filter(pk__in=queryset.values("pk"))
+    overdue.update(status=Trip.Status.CLOSED, updated_at=timezone.now())
+
+
 def _ensure_closing_items(trip):
     existing = set(trip.closing_items.values_list("key", flat=True))
     TripClosingItem.objects.bulk_create(
@@ -183,9 +196,6 @@ def close_trip(*, trip_id, agency, actor):
     summary = trip_closing_summary(trip)
     if not summary["is_ready"]:
         raise ValidationError("Every required closing item must be completed or not required.")
-    final_report = trip.closing_items.get(key=TripClosingItem.Key.FINAL_REPORT)
-    if not final_report.notes.strip() and not trip.document_links.exists():
-        raise ValidationError("Add final-report notes or archive a final report document.")
     trip.closing_status = Trip.ClosingStatus.CLOSED
     trip.closed_at = timezone.now()
     trip.closed_by = actor

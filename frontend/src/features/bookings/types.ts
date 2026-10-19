@@ -64,7 +64,7 @@ export interface BookingTravelerRecord {
   is_customer_contact: boolean;
   room_assignments: Array<{
     id: string;
-    room_group: string;
+    room_group: string | null;
     hotel: string;
     city: string;
     room_type: string;
@@ -114,6 +114,10 @@ export interface BookingFlightRecord {
 }
 
 export interface BookingRecord {
+  offer_revision: string | null;
+  commercial_details: Partial<CommercialDetails>;
+  partner: string | null;
+  partner_name: string | null;
   id: string;
   code: string;
   agency_name: string;
@@ -174,3 +178,12 @@ export interface BookingRecord {
   };
   created_at: string;
 }
+
+export type CommercialDetails = {
+  source: 'WALK_IN' | 'SOCIAL_MEDIA' | 'PARTNER' | 'REFERRER' | 'OTHER';
+  source_detail: string;
+  extras: { service: 'TGV' | 'SPECIAL_BUS' | 'FOOD' | 'OTHER'; description: string; quantity: number; unit_price: string }[];
+  payment_plan: 'FULL' | 'INSTALLMENTS';
+  installments: { due_date: string; amount: string }[];
+  notes: string;
+};

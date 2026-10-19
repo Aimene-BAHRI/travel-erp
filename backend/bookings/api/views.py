@@ -137,6 +137,34 @@ class BookingRequestViewSet(viewsets.ModelViewSet):
         response["X-Content-Type-Options"] = "nosniff"
         return response
 
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path=r"attachments/(?P<attachment_id>[^/.]+)/preview",
+    )
+    def preview_attachment(self, request, pk=None, attachment_id=None):
+        lead = self.get_object()
+        attachment = BookingRequestAttachment.objects.filter(pk=attachment_id, request=lead).first()
+        if not attachment:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        record_event(
+            actor=request.user,
+            action="booking_request.passport_previewed",
+            target_type="bookings.BookingRequestAttachment",
+            target_id=attachment.pk,
+            request=request,
+        )
+        response = FileResponse(
+            attachment.file.open("rb"),
+            as_attachment=False,
+            filename=attachment.original_filename,
+            content_type=attachment.mime_type,
+        )
+        response["Cache-Control"] = "private, no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Content-Security-Policy"] = "default-src 'none'; sandbox"
+        return response
+
 
 class BookingViewSet(
     mixins.ListModelMixin,
@@ -150,6 +178,7 @@ class BookingViewSet(
             "customer",
             "trip",
             "source_quote",
+            "partner",
             "currency",
             "accounting_currency",
             "snapshot",
@@ -166,6 +195,9 @@ class BookingViewSet(
                     "room_assignments__room_group__trip_hotel__stop__city",
                     "room_assignments__room_group__room_type",
                     "trip_room_assignments__stop",
+                    "trip_room_assignments__room__trip_hotel__hotel",
+                    "trip_room_assignments__room__trip_hotel__stop__city",
+                    "trip_room_assignments__room__room_type",
                 ),
             ),
             "accommodations__trip_hotel__stop__city",
@@ -247,6 +279,16 @@ class BookingViewSet(
             create_booking_draft, actor=request.user, **input_serializer.validated_data
         )
         self._audit("booking.draft_created", booking)
+        return Response(self.get_serializer(booking).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="passport-start")
+    def passport_start(self, request):
+        from bookings.quick_start import start_from_passport
+        try:
+            booking = start_from_passport(request)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from exc
+        self._audit("booking.passport_started", booking)
         return Response(self.get_serializer(booking).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="traveler-flow")
@@ -465,6 +507,25 @@ class BookingViewSet(
         booking = self._command(confirm_booking_draft, booking_id=booking.pk)
         self._audit("booking.confirmed", booking)
         return Response(self.get_serializer(self.get_queryset().get(pk=booking.pk)).data)
+
+    @action(detail=True, methods=["patch", "post"], url_path="client-review")
+    def client_review(self, request, pk=None):
+        from bookings.commercial import save_commercial
+        booking = self.get_object()
+        booking = self._command(save_commercial, booking_id=booking.pk, data=request.data, finalize=request.method == 'POST')
+        self._audit('booking.client_confirmed' if request.method == 'POST' else 'booking.offer_updated', booking)
+        return Response(self.get_serializer(self.get_queryset().get(pk=booking.pk)).data)
+
+    @action(detail=True, methods=["get"], url_path="accountant-copy")
+    def accountant_copy(self, request, pk=None):
+        from django.http import HttpResponse
+        from bookings.invoice_archive import render_archive
+        booking = self.get_object()
+        if not hasattr(booking, 'snapshot'):
+            raise serializers.ValidationError('Confirm the booking before downloading its archived copy.')
+        response = HttpResponse(render_archive(booking.snapshot), content_type='text/html; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="invoice-{booking.pk}-accountant.html"'
+        return response
 
     @action(detail=True, methods=["post"], url_path="travelers")
     def add_traveler(self, request, pk=None):

@@ -18,11 +18,19 @@ import { useState } from "react";
 
 import { AgencyDocumentHeader } from "@/components/documents/agency-document-header";
 import type { BookingRecord } from "@/features/bookings/types";
-import type { AgencyCurrency, Paginated, PaymentMethod } from "@/features/reference/types";
+import type {
+  AgencyCurrency,
+  Paginated,
+  PaymentMethod,
+} from "@/features/reference/types";
 import { apiRequest } from "@/lib/api/client";
 import { useLocale } from "@/lib/i18n/context";
 
-import type { FinancialSummary, FinancialTransactionRecord, PaymentReceipt } from "./types";
+import type {
+  FinancialSummary,
+  FinancialTransactionRecord,
+  PaymentReceipt,
+} from "./types";
 
 const text = {
   ar: {
@@ -47,7 +55,8 @@ const text = {
     ledger: "السجل المالي غير القابل للتعديل",
     receipt: "وصل",
     reverse: "عكس القيد",
-    rejected: "تم رفض العملية. تحقق من المبالغ، التخصيصات، العملة، وسجل العمليات.",
+    rejected:
+      "تم رفض العملية. تحقق من المبالغ، التخصيصات، العملة، وسجل العمليات.",
     allocationTitle: "تخصيص المدفوعات",
     allocationHelp: "إلى من تم ربط المبلغ المدفوع حتى الآن.",
     paid: "مدفوع",
@@ -61,7 +70,8 @@ const text = {
     netPaid: "Net paid",
     remainingBalance: "Remaining balance",
     postTitle: "Post payment or refund",
-    postHelp: "Record the receipt, then optionally split it between individual travelers.",
+    postHelp:
+      "Record the receipt, then optionally split it between individual travelers.",
     amount: "Amount received",
     rate: "Rate to booking currency",
     method: "Payment method",
@@ -76,7 +86,8 @@ const text = {
     ledger: "Immutable ledger",
     receipt: "Receipt",
     reverse: "Reverse",
-    rejected: "The operation was rejected. Check the amounts, allocations, currency rate, and history.",
+    rejected:
+      "The operation was rejected. Check the amounts, allocations, currency rate, and history.",
     allocationTitle: "Payment allocation",
     allocationHelp: "Who the amount paid so far is linked to.",
     paid: "paid",
@@ -85,7 +96,9 @@ const text = {
   },
 };
 
-export function PaymentWorkspace() {
+export function PaymentWorkspace({
+  initialBookingId = "",
+}: Readonly<{ initialBookingId?: string }>) {
   const { locale } = useLocale();
   const copy = text[locale];
   const paymentUi = {
@@ -99,7 +112,7 @@ export function PaymentWorkspace() {
     receiptPreview: locale === "ar" ? "معاينة الوصل" : "Receipt preview",
   };
   const cache = useQueryClient();
-  const [bookingId, setBookingId] = useState("");
+  const [bookingId, setBookingId] = useState(initialBookingId);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("");
   const [rate, setRate] = useState("1");
@@ -109,21 +122,26 @@ export function PaymentWorkspace() {
   const [receipt, setReceipt] = useState<PaymentReceipt | null>(null);
   const bookings = useQuery({
     queryKey: ["payment-bookings"],
-    queryFn: () => apiRequest<Paginated<BookingRecord>>("/bookings/?status=CONFIRMED"),
+    queryFn: () =>
+      apiRequest<Paginated<BookingRecord>>("/bookings/?status=CONFIRMED"),
   });
   const currencies = useQuery({
     queryKey: ["agency-currencies"],
-    queryFn: () => apiRequest<Paginated<AgencyCurrency>>("/reference/agency-currencies/"),
+    queryFn: () =>
+      apiRequest<Paginated<AgencyCurrency>>("/reference/agency-currencies/"),
   });
   const methods = useQuery({
     queryKey: ["payment-methods"],
-    queryFn: () => apiRequest<Paginated<PaymentMethod>>("/reference/payment-methods/"),
+    queryFn: () =>
+      apiRequest<Paginated<PaymentMethod>>("/reference/payment-methods/"),
   });
   const summary = useQuery({
     queryKey: ["financial-summary", bookingId],
     enabled: Boolean(bookingId),
     queryFn: () =>
-      apiRequest<FinancialSummary>(`/finance/transactions/booking-summary/?booking=${bookingId}`),
+      apiRequest<FinancialSummary>(
+        `/finance/transactions/booking-summary/?booking=${bookingId}`,
+      ),
   });
   const ledger = useQuery({
     queryKey: ["financial-ledger", bookingId],
@@ -162,17 +180,21 @@ export function PaymentWorkspace() {
   });
   const reverse = useMutation({
     mutationFn: (id: string) =>
-      apiRequest<FinancialTransactionRecord>(`/finance/transactions/${id}/reverse/`, {
-        method: "POST",
-        body: JSON.stringify({
-          transaction_date: new Date().toISOString().slice(0, 10),
-          reason: "Operator correction",
-        }),
-      }),
+      apiRequest<FinancialTransactionRecord>(
+        `/finance/transactions/${id}/reverse/`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            transaction_date: new Date().toISOString().slice(0, 10),
+            reason: "Operator correction",
+          }),
+        },
+      ),
     onSuccess: refresh,
   });
   const printReceipt = useMutation({
-    mutationFn: (id: string) => apiRequest<PaymentReceipt>(`/finance/transactions/${id}/receipt/`),
+    mutationFn: (id: string) =>
+      apiRequest<PaymentReceipt>(`/finance/transactions/${id}/receipt/`),
     onSuccess: setReceipt,
   });
   const selected = bookings.data?.results.find((item) => item.id === bookingId);
@@ -185,10 +207,14 @@ export function PaymentWorkspace() {
       setRate("1");
     }
   };
-  const allocationTotal = allocationPayload.reduce((sum, item) => sum + Number(item.amount), 0);
+  const allocationTotal = allocationPayload.reduce(
+    (sum, item) => sum + Number(item.amount),
+    0,
+  );
   const bookingAmount = Number(amount || 0) * Number(rate || 0);
   const allocationsValid =
-    !allocationPayload.length || Math.abs(allocationTotal - bookingAmount) < 0.0001;
+    !allocationPayload.length ||
+    Math.abs(allocationTotal - bookingAmount) < 0.0001;
   const dateTimeLocale = locale === "ar" ? "ar-DZ" : "en";
 
   if (bookings.isPending) {
@@ -220,11 +246,27 @@ export function PaymentWorkspace() {
         {bookingId && (
           <>
             <section className="grid gap-4 md:grid-cols-3">
-              <Metric label={copy.bookingTotal} value={summary.data?.booking_total} currency={summary.data?.currency} />
-              <Metric label={copy.netPaid} value={summary.data?.paid_amount} currency={summary.data?.currency} tone="emerald" />
-              <Metric label={copy.remainingBalance} value={summary.data?.remaining_amount} currency={summary.data?.currency} tone="amber" />
+              <Metric
+                label={copy.bookingTotal}
+                value={summary.data?.booking_total}
+                currency={summary.data?.currency}
+              />
+              <Metric
+                label={copy.netPaid}
+                value={summary.data?.paid_amount}
+                currency={summary.data?.currency}
+                tone="emerald"
+              />
+              <Metric
+                label={copy.remainingBalance}
+                value={summary.data?.remaining_amount}
+                currency={summary.data?.currency}
+                tone="amber"
+              />
             </section>
-            {summary.data && <PaymentAllocationBreakdown summary={summary.data} copy={copy} />}
+            {summary.data && (
+              <PaymentAllocationBreakdown summary={summary.data} copy={copy} />
+            )}
             <section className="rounded-xl border bg-white">
               <header className="border-b p-5">
                 <h2 className="flex items-center gap-2 font-semibold">
@@ -234,53 +276,89 @@ export function PaymentWorkspace() {
                 <p className="text-sm text-slate-500">{copy.postHelp}</p>
               </header>
               <div className="grid gap-3 p-5 md:grid-cols-5">
-                <Input value={amount} setValue={setAmount} placeholder={copy.amount} type="number" />
+                <Input
+                  value={amount}
+                  setValue={setAmount}
+                  placeholder={copy.amount}
+                  type="number"
+                />
                 <select
                   value={currency}
                   onChange={(event) => {
                     setCurrency(event.target.value);
-                    if (event.target.value === selected?.currency_code) setRate("1");
+                    if (event.target.value === selected?.currency_code)
+                      setRate("1");
                   }}
                   className="rounded-lg border px-3 py-2 text-sm"
                 >
                   {currencies.data?.results
                     .filter((item) => item.is_enabled)
                     .map((item) => (
-                      <option key={item.id} value={item.currency}>{item.currency}</option>
+                      <option key={item.id} value={item.currency}>
+                        {item.currency}
+                      </option>
                     ))}
                 </select>
-                <Input value={rate} setValue={setRate} placeholder={copy.rate} type="number" />
-                <select value={method} onChange={(event) => setMethod(event.target.value)} className="rounded-lg border px-3 py-2 text-sm">
+                <Input
+                  value={rate}
+                  setValue={setRate}
+                  placeholder={copy.rate}
+                  type="number"
+                />
+                <select
+                  value={method}
+                  onChange={(event) => setMethod(event.target.value)}
+                  className="rounded-lg border px-3 py-2 text-sm"
+                >
                   <option value="">{copy.method}</option>
                   {methods.data?.results.map((item) => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
                   ))}
                 </select>
-                <Input value={reference} setValue={setReference} placeholder={copy.reference} />
+                <Input
+                  value={reference}
+                  setValue={setReference}
+                  placeholder={copy.reference}
+                />
               </div>
               {!!summary.data?.traveler_balances.length && (
                 <div className="border-t p-5">
                   <div className="mb-3 flex justify-between">
                     <div>
                       <h3 className="font-medium">{copy.allocate}</h3>
-                      <p className="text-xs text-slate-500">{copy.allocateHelp}</p>
+                      <p className="text-xs text-slate-500">
+                        {copy.allocateHelp}
+                      </p>
                     </div>
                     <div className="text-sm">
-                      <p className={allocationsValid ? "text-emerald-700" : "text-red-700"}>
-                        {copy.allocated} {allocationTotal.toFixed(2)} / {bookingAmount.toFixed(2)}{" "}
-                        {selected?.currency_code}
+                      <p
+                        className={
+                          allocationsValid ? "text-emerald-700" : "text-red-700"
+                        }
+                      >
+                        {copy.allocated} {allocationTotal.toFixed(2)} /{" "}
+                        {bookingAmount.toFixed(2)} {selected?.currency_code}
                       </p>
                       {!allocationsValid && (
-                        <p className="mt-1 text-xs text-red-700">{paymentUi.allocationWarning}</p>
+                        <p className="mt-1 text-xs text-red-700">
+                          {paymentUi.allocationWarning}
+                        </p>
                       )}
                     </div>
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     {summary.data.traveler_balances.map((traveler) => (
-                      <label key={traveler.booking_traveler} className="rounded-lg border p-3 text-sm">
+                      <label
+                        key={traveler.booking_traveler}
+                        className="rounded-lg border p-3 text-sm"
+                      >
                         <span className="flex justify-between">
                           <b>{traveler.traveler_name}</b>
-                          <span>{copy.due} {traveler.remaining_amount}</span>
+                          <span>
+                            {copy.due} {traveler.remaining_amount}
+                          </span>
                         </span>
                         <input
                           type="number"
@@ -302,14 +380,36 @@ export function PaymentWorkspace() {
                 </div>
               )}
               <div className="flex gap-2 px-5 pb-5">
-                {Boolean(selected?.readiness.payment_blockers.length) && <p className="text-sm text-amber-800">{locale === "ar" ? "???? ?????? ???? ????????? ??? ????? ????." : "Complete valid passports for all requested travelers before recording payment."}</p>}
-                <Action onClick={() => post.mutate("payments")} disabled={!amount || !currency || !method || !allocationsValid || post.isPending || Boolean(selected?.readiness.payment_blockers.length)}>
+                {Boolean(selected?.readiness.payment_blockers.length) && (
+                  <p className="text-sm text-amber-800">
+                    {locale === "ar"
+                      ? "???? ?????? ???? ????????? ??? ????? ????."
+                      : "Complete valid passports for all requested travelers before recording payment."}
+                  </p>
+                )}
+                <Action
+                  onClick={() => post.mutate("payments")}
+                  disabled={
+                    !amount ||
+                    !currency ||
+                    !method ||
+                    !allocationsValid ||
+                    post.isPending ||
+                    Boolean(selected?.readiness.payment_blockers.length)
+                  }
+                >
                   <ArrowDownLeft className="size-4" />
                   {copy.postPayment}
                 </Action>
                 <button
                   onClick={() => post.mutate("refunds")}
-                  disabled={!amount || !currency || !method || !allocationsValid || post.isPending}
+                  disabled={
+                    !amount ||
+                    !currency ||
+                    !method ||
+                    !allocationsValid ||
+                    post.isPending
+                  }
                   className="flex items-center gap-2 rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-800 disabled:opacity-50"
                 >
                   <ArrowUpRight className="size-4" />
@@ -326,7 +426,10 @@ export function PaymentWorkspace() {
               </header>
               <div className="divide-y">
                 {ledger.data?.results.map((item) => (
-                  <div key={item.id} className="grid gap-3 p-5 md:grid-cols-[1fr_auto_auto]">
+                  <div
+                    key={item.id}
+                    className="grid gap-3 p-5 md:grid-cols-[1fr_auto_auto]"
+                  >
                     <div>
                       <p className="font-medium">{item.number}</p>
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
@@ -345,8 +448,12 @@ export function PaymentWorkspace() {
                         </span>
                       </div>
                       {item.allocations.map((allocation) => (
-                        <p key={allocation.id} className="text-xs text-cyan-800">
-                          {allocation.traveler_name}: {allocation.amount} {item.booking_currency_code}
+                        <p
+                          key={allocation.id}
+                          className="text-xs text-cyan-800"
+                        >
+                          {allocation.traveler_name}: {allocation.amount}{" "}
+                          {item.booking_currency_code}
                         </p>
                       ))}
                     </div>
@@ -355,13 +462,19 @@ export function PaymentWorkspace() {
                     </p>
                     <div className="flex flex-wrap gap-3">
                       {item.kind === "PAYMENT" && (
-                        <button onClick={() => printReceipt.mutate(item.id)} className="flex items-center gap-1 text-sm text-cyan-800">
+                        <button
+                          onClick={() => printReceipt.mutate(item.id)}
+                          className="flex items-center gap-1 text-sm text-cyan-800"
+                        >
                           <Printer className="size-4" />
                           {copy.receipt}
                         </button>
                       )}
                       {item.kind !== "REVERSAL" && (
-                        <button onClick={() => reverse.mutate(item.id)} className="flex items-center gap-1 text-sm">
+                        <button
+                          onClick={() => reverse.mutate(item.id)}
+                          className="flex items-center gap-1 text-sm"
+                        >
                           <RotateCcw className="size-4" />
                           {copy.reverse}
                         </button>
@@ -374,7 +487,9 @@ export function PaymentWorkspace() {
           </>
         )}
         {(post.isError || reverse.isError || printReceipt.isError) && (
-          <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{copy.rejected}</p>
+          <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+            {copy.rejected}
+          </p>
         )}
       </div>
       {receipt && (
@@ -497,7 +612,9 @@ function ReceiptSlip({
 
   return (
     <>
-      <section className={`receipt-slip rounded-xl border border-slate-900 p-3 text-slate-950 print:break-inside-avoid ${backgroundTone}`}>
+      <section
+        className={`receipt-slip rounded-xl border border-slate-900 p-3 text-slate-950 print:break-inside-avoid ${backgroundTone}`}
+      >
         <div className="flex items-start justify-between gap-4 border-b pb-3">
           <AgencyDocumentHeader
             compact
@@ -506,24 +623,44 @@ function ReceiptSlip({
             title={uiText("وصل الدفع")}
             subtitle={receipt.branch_name}
           />
-          <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${copyTone}`}>
+          <span
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${copyTone}`}
+          >
             {copyLabel}
           </span>
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-          <p><b>{uiText("رقم الوصل:")}</b> {receipt.receipt_number}</p>
-          <p><b>{uiText("التاريخ:")}</b> {entry.transaction_date}</p>
-          <p><b>{uiText("رقم الحجز:")}</b> {receipt.booking_code}</p>
-          <p><b>{uiText("طريقة الدفع:")}</b> {entry.payment_method_name}</p>
-          <p><b>{uiText("الاسم واللقب:")}</b> {receipt.customer_name}</p>
-          {receipt.customer_phone && <p><b>{uiText("الهاتف:")}</b> {receipt.customer_phone}</p>}
-          <p className="col-span-2"><b>{uiText("نوع البرنامج:")}</b> {receipt.trip_name}</p>
+          <p>
+            <b>{uiText("رقم الوصل:")}</b> {receipt.receipt_number}
+          </p>
+          <p>
+            <b>{uiText("التاريخ:")}</b> {entry.transaction_date}
+          </p>
+          <p>
+            <b>{uiText("رقم الحجز:")}</b> {receipt.booking_code}
+          </p>
+          <p>
+            <b>{uiText("طريقة الدفع:")}</b> {entry.payment_method_name}
+          </p>
+          <p>
+            <b>{uiText("الاسم واللقب:")}</b> {receipt.customer_name}
+          </p>
+          {receipt.customer_phone && (
+            <p>
+              <b>{uiText("الهاتف:")}</b> {receipt.customer_phone}
+            </p>
+          )}
+          <p className="col-span-2">
+            <b>{uiText("نوع البرنامج:")}</b> {receipt.trip_name}
+          </p>
         </div>
 
         <section className="mt-3 rounded-lg border-2 border-slate-900 p-3 text-center">
           <p className="text-xs">{uiText("المبلغ بالأرقام")}</p>
-          <p className="mt-1 text-2xl font-bold">{entry.amount} {entry.currency_code}</p>
+          <p className="mt-1 text-2xl font-bold">
+            {entry.amount} {entry.currency_code}
+          </p>
           <p className="mt-2 border-t pt-2 text-sm">
             <b>{uiText("المبلغ بالأحرف:")}</b> {receipt.amount_in_words_ar}
           </p>
@@ -534,19 +671,25 @@ function ReceiptSlip({
             <thead>
               <tr>
                 <th className="border p-1.5 text-right">{uiText("المسافر")}</th>
-                <th className="border p-1.5 text-right">{uiText("المبلغ المخصص")}</th>
+                <th className="border p-1.5 text-right">
+                  {uiText("المبلغ المخصص")}
+                </th>
               </tr>
             </thead>
             <tbody>
               {entry.allocations.map((allocation) => (
                 <tr key={allocation.id}>
                   <td className="border p-1.5">{allocation.traveler_name}</td>
-                  <td className="border p-1.5">{allocation.amount} {entry.booking_currency_code}</td>
+                  <td className="border p-1.5">
+                    {allocation.amount} {entry.booking_currency_code}
+                  </td>
                 </tr>
               ))}
               {unallocatedAmount > 0 && (
                 <tr>
-                  <td className="border p-1.5">{uiText("دفعة غير مخصصة لمسافر")}</td>
+                  <td className="border p-1.5">
+                    {uiText("دفعة غير مخصصة لمسافر")}
+                  </td>
                   <td className="border p-1.5">
                     {unallocatedAmount.toFixed(4)} {entry.booking_currency_code}
                   </td>
@@ -558,23 +701,38 @@ function ReceiptSlip({
           <div className="grid grid-cols-1 border text-center text-xs">
             <div className="p-2">
               <b className="block">{uiText("إجمالي الحجز")}</b>
-              {receipt.financial_summary.booking_total} {receipt.financial_summary.currency}
+              {receipt.financial_summary.booking_total}{" "}
+              {receipt.financial_summary.currency}
             </div>
             <div className="border-y p-2">
               <b className="block">{uiText("المدفوع حتى الآن")}</b>
-              {receipt.financial_summary.paid_amount} {receipt.financial_summary.currency}
+              {receipt.financial_summary.paid_amount}{" "}
+              {receipt.financial_summary.currency}
             </div>
             <div className="p-2">
               <b className="block">{uiText("المبلغ المتبقي")}</b>
-              {receipt.financial_summary.remaining_amount} {receipt.financial_summary.currency}
+              {receipt.financial_summary.remaining_amount}{" "}
+              {receipt.financial_summary.currency}
             </div>
           </div>
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-          {!!receipt.hotels.length && <p><b>{uiText("الفنادق:")}</b> {receipt.hotels.join("، ")}</p>}
-          {!!receipt.room_types.length && <p><b>{uiText("نوع الغرفة:")}</b> {receipt.room_types.join("، ")}</p>}
-          {entry.reference && <p><b>{uiText("المرجع:")}</b> {entry.reference}</p>}
+          {!!receipt.hotels.length && (
+            <p>
+              <b>{uiText("الفنادق:")}</b> {receipt.hotels.join("، ")}
+            </p>
+          )}
+          {!!receipt.room_types.length && (
+            <p>
+              <b>{uiText("نوع الغرفة:")}</b> {receipt.room_types.join("، ")}
+            </p>
+          )}
+          {entry.reference && (
+            <p>
+              <b>{uiText("المرجع:")}</b> {entry.reference}
+            </p>
+          )}
         </div>
 
         <footer className="mt-6 grid grid-cols-2 pb-[15mm] text-center text-xs">
@@ -582,11 +740,12 @@ function ReceiptSlip({
           <p>{uiText("ختم الوكالة")}</p>
         </footer>
       </section>
-      {showCutLine && <div className="border-t border-dashed border-slate-400 print:my-2" />}
+      {showCutLine && (
+        <div className="border-t border-dashed border-slate-400 print:my-2" />
+      )}
     </>
   );
 }
-
 
 function PaymentAllocationBreakdown({
   summary,
@@ -605,18 +764,28 @@ function PaymentAllocationBreakdown({
       </header>
       <div className="divide-y">
         {summary.traveler_balances.map((traveler) => (
-          <div key={traveler.booking_traveler} className="flex justify-between gap-4 p-4 text-sm">
+          <div
+            key={traveler.booking_traveler}
+            className="flex justify-between gap-4 p-4 text-sm"
+          >
             <span className="font-medium">{traveler.traveler_name}</span>
             <span className="text-left">
-              <b>{traveler.paid_amount} {summary.currency}</b> {copy.paid}
-              <span className="mr-3 text-slate-500">{traveler.remaining_amount} {copy.remaining}</span>
+              <b>
+                {traveler.paid_amount} {summary.currency}
+              </b>{" "}
+              {copy.paid}
+              <span className="mr-3 text-slate-500">
+                {traveler.remaining_amount} {copy.remaining}
+              </span>
             </span>
           </div>
         ))}
         {unallocated > 0.00005 && (
           <div className="flex justify-between gap-4 bg-amber-50 p-4 text-sm text-amber-900">
             <span className="font-medium">{copy.unallocated}</span>
-            <b>{unallocated.toFixed(4)} {summary.currency}</b>
+            <b>
+              {unallocated.toFixed(4)} {summary.currency}
+            </b>
           </div>
         )}
       </div>
@@ -643,7 +812,9 @@ function Metric({
   return (
     <div className={`rounded-xl border p-5 ${colors[tone]}`}>
       <p className="text-sm">{label}</p>
-      <p className="mt-2 text-2xl font-semibold">{value} {currency}</p>
+      <p className="mt-2 text-2xl font-semibold">
+        {value} {currency}
+      </p>
     </div>
   );
 }

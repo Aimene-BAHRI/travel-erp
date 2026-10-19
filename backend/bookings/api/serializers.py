@@ -251,7 +251,9 @@ class BookingTravelerSerializer(serializers.ModelSerializer):
         return sum((item.final_amount for item in obj.charges.all()), Decimal("0"))
 
     def get_room_assignments(self, obj):
-        return [
+        actual = list(obj.trip_room_assignments.all())
+        stops = {link.stop_id for link in actual}
+        return [{"id": str(link.pk), "room_group": None, "room": str(link.room_id), "hotel": link.room.trip_hotel.hotel.name, "city": link.room.trip_hotel.stop.city.name, "room_type": link.room.room_type.name, "label": link.room.label} for link in actual] + [
             {
                 "id": str(link.pk),
                 "room_group": str(link.room_group_id),
@@ -261,6 +263,7 @@ class BookingTravelerSerializer(serializers.ModelSerializer):
                 "label": link.room_group.label,
             }
             for link in obj.room_assignments.all()
+            if link.room_group.trip_hotel.stop_id not in stops
         ]
 
 
@@ -396,7 +399,13 @@ class BookingRoomGroupSerializer(serializers.ModelSerializer):
 
 
 class BookingSerializer(serializers.ModelSerializer):
-    agency_name = serializers.CharField(source="agency.name", read_only=True)
+    offer_revision = serializers.SerializerMethodField()
+
+    def get_offer_revision(self, obj):
+        from bookings.commercial import offer_revision
+        return offer_revision(obj) if obj.status == 'DRAFT' else None
+    partner_name = serializers.CharField(source="partner.name", read_only=True, default=None)
+    agency_name = serializers.CharField(source="agency.legal_name", read_only=True)
     agency_logo = serializers.ImageField(source="agency.logo", read_only=True)
     branch_name = serializers.CharField(source="branch.name", read_only=True)
     customer_name = serializers.CharField(source="customer.display_name", read_only=True)
@@ -444,6 +453,10 @@ class BookingSerializer(serializers.ModelSerializer):
             "code",
             "agency_name",
             "agency_logo",
+            "partner",
+            "partner_name",
+            "commercial_details",
+            "offer_revision",
             "branch",
             "branch_name",
             "customer",
@@ -605,9 +618,29 @@ class DirectBookingSerializer(serializers.Serializer):
 
 
 class BookingDraftSerializer(DirectBookingSerializer):
+    lead_source = serializers.ChoiceField(choices=['WALK_IN', 'SOCIAL_MEDIA', 'PARTNER', 'REFERRER', 'OTHER'], required=False)
+    source_detail = serializers.CharField(max_length=250, allow_blank=True, default='')
+    from partners.models import Partner
+    partner = serializers.PrimaryKeyRelatedField(queryset=Partner.objects.none(), required=False)
     expected_travelers = serializers.IntegerField(min_value=1, max_value=32767, default=1)
     code = None
     price_lines = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            partners = self.Partner.objects.filter(agency=request.user.agency, is_active=True, kind="COMPANY")
+            if request.user.branch_id and not request.user.has_perm("partners.view_all_partners"):
+                partners = partners.filter(branch=request.user.branch)
+            self.fields["partner"].queryset = partners
+
+    def validate(self, attrs):
+        if attrs.get("partner"):
+            if attrs.get("customer") or attrs.get("new_customer"):
+                raise serializers.ValidationError("Choose a partner or a customer, not both.")
+            return attrs
+        return super().validate(attrs)
 
 
 class InlineBookingTravelerSerializer(serializers.Serializer):

@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from accounts.models import User
 from bookings.models import Booking
-from finance.models import TripExpense
+from finance.models import AirlineInstallment, TripExpense
 from trips.models import Trip, TripClosingItem, TripTransport
 
 from .models import Notification, NotificationRule
@@ -53,6 +53,7 @@ def sync_notifications(user):
     _booking_alerts(user, rules, today, active)
     _readiness_alerts(user, rules, today, active)
     _supplier_alerts(user, rules, today, active)
+    _airline_alerts(user, rules, today, active)
     _closing_task_alerts(user, rules, today, active)
     _transport_alerts(user, rules, today, active)
     scanner_events = [
@@ -63,6 +64,7 @@ def sync_notifications(user):
         NotificationRule.Event.PASSPORT_ATTENTION,
         NotificationRule.Event.ROOM_ALLOCATION,
         NotificationRule.Event.SUPPLIER_DUE,
+        NotificationRule.Event.AIRLINE_DUE,
         NotificationRule.Event.CLOSING_OVERDUE,
         NotificationRule.Event.TRANSPORT_DETAILS,
     ]
@@ -284,3 +286,24 @@ def _readiness_alerts(user, rules, today, active):
         if report["errors"]:
             message += " " + " ".join(report["errors"])
         notify_agency(agency=trip.agency, branch=trip.branch, event=NotificationRule.Event.READINESS, title="Trip ready" if report["is_ready"] else "Trip readiness requires attention", message=message, target_url=f"/trips/{trip.pk}", dedupe_key=key, severity=severity)
+
+
+def _airline_alerts(user, rules, today, active):
+    rule = rules.get(NotificationRule.Event.AIRLINE_DUE)
+    if not rule:
+        return
+    items = AirlineInstallment.objects.filter(
+        pricing__trip__agency=user.agency, voided_at__isnull=True,
+        cash_entry__isnull=True, due_date__lte=today,
+    ).select_related("pricing__trip__branch")
+    for item in items:
+        trip = item.pricing.trip
+        key = f"{rule.event}:{item.pk}"
+        active.add(key)
+        notify_agency(
+            agency=user.agency, branch=trip.branch, event=rule.event,
+            title="Airline installment due",
+            message=f"{trip.code}: {item.scheduled_amount} DZD due on {item.due_date}.",
+            target_url=f"/cash-flow?tab=installments&trip={trip.pk}",
+            dedupe_key=key, severity="WARNING",
+        )

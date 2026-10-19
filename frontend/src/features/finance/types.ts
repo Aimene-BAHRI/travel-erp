@@ -123,6 +123,9 @@ export interface CashFlowReport {
   trip: string | null;
   totals_by_currency: Record<string, { inflow: string | number; outflow: string | number; net: string | number }>;
   entries: Array<{
+    id: string;
+    editable?: boolean;
+    manage_url?: string | null;
     number: string;
     date: string;
     kind: string;

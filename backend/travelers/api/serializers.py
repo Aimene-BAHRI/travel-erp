@@ -10,6 +10,14 @@ from travelers.services import save_passport
 class PassportSummarySerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     nationality_code = serializers.CharField(source="nationality.code", read_only=True)
+    passport_image_url = serializers.SerializerMethodField()
+
+    def get_passport_image_url(self, obj) -> str | None:
+        if not obj.passport_image_id:
+            return None
+        path = f"/api/v1/documents/{obj.passport_image_id}/download/"
+        request = self.context.get("request")
+        return request.build_absolute_uri(path) if request else path
 
     class Meta:
         model = Passport
@@ -22,6 +30,7 @@ class PassportSummarySerializer(serializers.ModelSerializer):
             "gender",
             "expiry_date",
             "nationality_code",
+            "passport_image_url",
         ]
 
     def get_full_name(self, obj) -> str:
@@ -93,7 +102,7 @@ class TravelerSerializer(serializers.ModelSerializer):
         passport = next(
             (item for item in obj.passports.all() if item.status == Passport.Status.CURRENT), None
         )
-        return PassportSummarySerializer(passport).data if passport else None
+        return PassportSummarySerializer(passport, context=self.context).data if passport else None
 
     def get_display_name(self, obj) -> str:
         passport = next(

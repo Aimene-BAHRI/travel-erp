@@ -98,6 +98,27 @@ def test_trip_closing_is_gated_by_the_full_checklist(trip_data):
     assert closed.data["closed_by"] == trip_data["owner"].email
 
 
+def test_trip_closing_does_not_require_separate_final_report_document(trip_data):
+    trip = trip_data["trip"]
+    trip.status = Trip.Status.COMPLETED
+    trip.save(update_fields=["status"])
+    client = authenticated_client(trip_data["owner"])
+    summary = client.get(reverse("trip-closing", args=[trip.pk]))
+
+    for item in summary.data["items"]:
+        response = client.patch(
+            reverse("trip-update-closing-item", args=[trip.pk, item["key"]]),
+            {"state": TripClosingItem.State.COMPLETED, "notes": ""},
+            format="json",
+        )
+        assert response.status_code == 200
+
+    response = client.post(reverse("trip-close-closing", args=[trip.pk]), {}, format="json")
+
+    assert response.status_code == 200
+    assert response.data["status"] == Trip.ClosingStatus.CLOSED
+
+
 def test_closed_trip_closing_can_be_reopened(trip_data):
     trip = trip_data["trip"]
     trip.status = Trip.Status.COMPLETED
@@ -287,6 +308,21 @@ def test_trip_list_never_returns_foreign_agency(trip_data):
     ids = {str(item["id"]) for item in response.data["results"]}
     assert str(trip_data["trip"].id) in ids
     assert str(foreign_trip.id) not in ids
+
+
+def test_trip_list_closes_open_trips_after_return_date(trip_data, settings):
+    settings.TIME_ZONE = "UTC"
+    trip = trip_data["trip"]
+    trip.status = Trip.Status.OPEN
+    trip.departure_date = date(2026, 9, 4)
+    trip.return_date = date(2026, 9, 18)
+    trip.save(update_fields=["status", "departure_date", "return_date"])
+
+    response = authenticated_client(trip_data["owner"]).get(reverse("trip-list"))
+
+    assert response.status_code == 200
+    trip.refresh_from_db()
+    assert trip.status == Trip.Status.CLOSED
 
 
 def test_trip_document_upload_uses_typed_owner(trip_data, tmp_path, settings):

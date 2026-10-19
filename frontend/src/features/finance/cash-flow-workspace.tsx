@@ -82,6 +82,7 @@ function amount(value: string | number) {
 export function CashFlowWorkspace() {
   const uiText = useUiText();
   const cache = useQueryClient();
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [trip, setTrip] = useState("");
   const [currency, setCurrency] = useState("");
   const [open, setOpen] = useState(false);
@@ -114,8 +115,8 @@ export function CashFlowWorkspace() {
   });
   const post = useMutation({
     mutationFn: () =>
-      apiRequest<CashEntry>("/finance/cash-entries/post/", {
-        method: "POST",
+      apiRequest<CashEntry>(editingId ? `/finance/cash-entries/${editingId}/` : "/finance/cash-entries/post/", {
+        method: editingId ? "PATCH" : "POST",
         body: JSON.stringify({
           ...draft,
           trip: draft.trip || null,
@@ -131,6 +132,24 @@ export function CashFlowWorkspace() {
     },
   });
 
+  const editEntry = useMutation({
+    mutationFn: (id: string) => apiRequest<Draft>(`/finance/cash-entries/${id}/`),
+    onSuccess: (entry, id) => {
+      const next = { ...emptyDraft };
+      for (const key of Object.keys(next) as Array<keyof Draft>) {
+        (next as Record<string, string>)[key] = String(entry[key] ?? "");
+      }
+      setDraft(next);
+      setEditingId(id);
+      post.reset();
+      setOpen(true);
+    },
+  });
+  const removeEntry = useMutation({
+    mutationFn: (id: string) => apiRequest(`/finance/cash-entries/${id}/`, { method: "DELETE" }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["cash-flow-report"] }),
+  });
+
   const totals = Object.entries(report.data?.totals_by_currency ?? {}).filter(
     ([code]) => !currency || code === currency,
   );
@@ -138,6 +157,7 @@ export function CashFlowWorkspace() {
     (entry) => !currency || entry.currency === currency,
   );
   const openEntry = () => {
+    setEditingId(null);
     const defaultCurrency =
       currencies.data?.results.find((item) => item.is_accounting)?.currency ??
       currencies.data?.results.find((item) => item.is_enabled)?.currency ??
@@ -268,11 +288,12 @@ export function CashFlowWorkspace() {
               {entries.length} {uiText("entries")}
             </span>
           </header>
+          <MutationMessage error={editEntry.error || removeEntry.error} />
           {entries.length ? (
             <div className="divide-y divide-slate-100">
               {entries.map((entry) => (
                 <div
-                  key={`${entry.number}-${entry.date}`}
+                  key={entry.id}
                   className="grid gap-3 p-5 md:grid-cols-[auto_1fr_auto_auto] md:items-center"
                 >
                   <span
@@ -306,9 +327,14 @@ export function CashFlowWorkspace() {
                     {Number(entry.amount) >= 0 ? "+" : "−"}
                     {amount(Math.abs(Number(entry.amount)))} {entry.currency}
                   </p>
-                  <p className="text-end text-xs text-slate-500">
-                    {entry.currency}
-                  </p>
+                  <div className="flex justify-end gap-3 text-sm">
+                    {entry.editable ? <>
+                      <button className="text-cyan-800 underline" disabled={editEntry.isPending || removeEntry.isPending} onClick={() => editEntry.mutate(entry.id)}>{uiText("Edit")}</button>
+                      <button className="text-red-700 underline" disabled={removeEntry.isPending} onClick={() => {
+                        if (window.confirm(uiText("Delete this cash entry? Its amount will be reversed."))) removeEntry.mutate(entry.id);
+                      }}>{uiText("Delete")}</button>
+                    </> : entry.manage_url ? <a className="text-cyan-800 underline" href={entry.manage_url}>{uiText("Manage payment")}</a> : <span className="text-slate-500">{uiText("Reversed entry")}</span>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -323,7 +349,7 @@ export function CashFlowWorkspace() {
       <FormDialog
         open={open}
         onClose={() => setOpen(false)}
-        title={uiText("Add cash entry")}
+        title={uiText(editingId ? "Edit cash entry" : "Add cash entry")}
         description={uiText("Record money entering or leaving the agency.")}
       >
         <form
@@ -560,7 +586,7 @@ export function CashFlowWorkspace() {
               disabled={post.isPending}
               className="rounded-lg bg-cyan-800 px-4 py-2 text-white disabled:opacity-50"
             >
-              {post.isPending ? uiText("Saving...") : uiText("Post entry")}
+              {post.isPending ? uiText("Saving...") : uiText(editingId ? "Save changes" : "Post entry")}
             </button>
           </div>
         </form>

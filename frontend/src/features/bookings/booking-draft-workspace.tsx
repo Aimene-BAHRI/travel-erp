@@ -1,11 +1,12 @@
 "use client";
 
+import { ClientReview } from "./client-review";
 import { useOperationalText as useUiText } from "@/lib/i18n/operational";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   BadgePercent,
-  CheckCircle2,
+  BedDouble,
   FileScan,
   Plus,
   Trash2,
@@ -19,6 +20,7 @@ import type { DocumentRecord } from "@/features/travelers/types";
 import { PassportScanAssistant } from "@/features/travelers/passport-scan-assistant";
 import type { HotelPriceRecord } from "@/features/pricing/types";
 import type { Country, Paginated } from "@/features/reference/types";
+import type { AccommodationPlan } from "@/features/trips/types";
 import { apiRequest } from "@/lib/api/client";
 import { useOperationalText } from "@/lib/i18n/operational";
 
@@ -113,6 +115,13 @@ export function BookingDraftWorkspace({
     value: "",
     reason: "",
   });
+  const [roomDraft, setRoomDraft] = useState({
+    trip_hotel: "",
+    room_type: "",
+    label: "",
+    capacity: "2",
+    notes: "",
+  });
   const countries = useQuery({
     queryKey: ["countries"],
     queryFn: () =>
@@ -123,6 +132,20 @@ export function BookingDraftWorkspace({
     queryFn: () =>
       apiRequest<Paginated<HotelPriceRecord>>(
         `/pricing/hotel-prices/?trip=${booking.trip}`,
+      ),
+  });
+  const accommodationPlan = useQuery({
+    queryKey: ["draft-accommodation-plan", booking.trip],
+    queryFn: () =>
+      apiRequest<AccommodationPlan>(
+        `/trips/${booking.trip}/accommodation-plan/`,
+      ),
+  });
+  const roomTypes = useQuery({
+    queryKey: ["booking-room-types"],
+    queryFn: () =>
+      apiRequest<Paginated<{ id: string; name: string }>>(
+        "/catalog/room-types/?ordering=sort_order,name",
       ),
   });
   const reload = () => apiRequest<BookingRecord>(`/bookings/${booking.id}/`);
@@ -310,11 +333,66 @@ export function BookingDraftWorkspace({
     },
     onSuccess: onChange,
   });
-  const confirm = useMutation({
+  const addRoom = useMutation({
     mutationFn: () =>
-      apiRequest<BookingRecord>(`/bookings/${booking.id}/confirm/`, {
+      apiRequest<BookingRecord>(`/bookings/${booking.id}/rooms/`, {
         method: "POST",
+        body: JSON.stringify({
+          ...roomDraft,
+          capacity: Number(roomDraft.capacity),
+        }),
       }),
+    onSuccess: (result) => {
+      onChange(result);
+      setRoomDraft({
+        trip_hotel: "",
+        room_type: "",
+        label: "",
+        capacity: "2",
+        notes: "",
+      });
+    },
+  });
+  const removeRoom = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest<void>(`/bookings/${booking.id}/rooms/${id}/`, {
+        method: "DELETE",
+      });
+      return reload();
+    },
+    onSuccess: onChange,
+  });
+  const assignRoomTraveler = useMutation({
+    mutationFn: ({
+      roomId,
+      travelerId,
+    }: {
+      roomId: string;
+      travelerId: string;
+    }) =>
+      apiRequest<BookingRecord>(
+        `/bookings/${booking.id}/rooms/${roomId}/travelers/`,
+        {
+          method: "POST",
+          body: JSON.stringify({ booking_traveler_id: travelerId }),
+        },
+      ),
+    onSuccess: onChange,
+  });
+  const removeRoomTraveler = useMutation({
+    mutationFn: async ({
+      roomId,
+      assignmentId,
+    }: {
+      roomId: string;
+      assignmentId: string;
+    }) => {
+      await apiRequest<void>(
+        `/bookings/${booking.id}/rooms/${roomId}/travelers/${assignmentId}/`,
+        { method: "DELETE" },
+      );
+      return reload();
+    },
     onSuccess: onChange,
   });
   const error =
@@ -325,7 +403,11 @@ export function BookingDraftWorkspace({
     removeCharge.error ??
     addDiscount.error ??
     removeDiscount.error ??
-    confirm.error;
+    addRoom.error ??
+    removeRoom.error ??
+    assignRoomTraveler.error ??
+    removeRoomTraveler.error ??
+    saveContact.error;
   const openPassport = (traveler: BookingTravelerRecord) => {
     const defaultCountry =
       countries.data?.results.find((item) => ["DZ", "DZA"].includes(item.code))
@@ -386,13 +468,24 @@ export function BookingDraftWorkspace({
       !selectedPriceTraveler ||
       item.passenger_category === selectedPriceTraveler.passenger_category,
   );
+  const hotelOptions = (accommodationPlan.data?.stops ?? []).flatMap((stop) =>
+    stop.hotels.map((hotel) => ({
+      id: hotel.id,
+      label: `${stop.city_name} · ${hotel.hotel_name}`,
+    })),
+  );
+  const selectedRoomType = roomTypes.data?.results.find(
+    (item) => item.id === roomDraft.room_type,
+  );
 
   return (
     <div className="space-y-6">
       <Readiness booking={booking} />
       <Step
         title={t("1. Customer contact")}
-        hint={t("The customer may or may not travel, but the agency must be able to contact them later.")}
+        hint={t(
+          "The customer may or may not travel, but the agency must be able to contact them later.",
+        )}
       >
         <div className="grid gap-3 p-5 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]">
           <input
@@ -536,8 +629,174 @@ export function BookingDraftWorkspace({
         </div>
       </Step>
       <Step
-        title={t("3. Final price per traveler")}
-        hint={t("Add the final package price or detailed service lines, then apply a fixed or percentage reduction with a reason.")}
+        title={t("3. Rooms and occupancy")}
+        hint={t(
+          "Create or replace room groups while the client is deciding. The room capacity can change without freezing the booking price.",
+        )}
+      >
+        <div className="grid gap-3 p-5 lg:grid-cols-[1fr_1fr_150px_1fr_auto]">
+          <select
+            className={field}
+            value={roomDraft.trip_hotel}
+            onChange={(event) =>
+              setRoomDraft({ ...roomDraft, trip_hotel: event.target.value })
+            }
+          >
+            <option value="">{t("Hotel stop")}</option>
+            {hotelOptions.map((hotel) => (
+              <option key={hotel.id} value={hotel.id}>
+                {hotel.label}
+              </option>
+            ))}
+          </select>
+          <select
+            className={field}
+            value={roomDraft.room_type}
+            onChange={(event) =>
+              setRoomDraft({ ...roomDraft, room_type: event.target.value })
+            }
+          >
+            <option value="">{t("Room type")}</option>
+            {roomTypes.data?.results.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </select>
+          <input
+            className={field}
+            type="number"
+            min="1"
+            value={roomDraft.capacity}
+            onChange={(event) =>
+              setRoomDraft({ ...roomDraft, capacity: event.target.value })
+            }
+            placeholder={t("Capacity")}
+            aria-label={t("Capacity")}
+          />
+          <input
+            className={field}
+            value={roomDraft.label}
+            onChange={(event) =>
+              setRoomDraft({ ...roomDraft, label: event.target.value })
+            }
+            placeholder={t("Room label, e.g. Room 1")}
+          />
+          <button
+            className={primary}
+            disabled={
+              !roomDraft.trip_hotel ||
+              !roomDraft.room_type ||
+              !roomDraft.label ||
+              addRoom.isPending
+            }
+            onClick={() => addRoom.mutate()}
+          >
+            <Plus className="size-4" />
+            {t("Add room")}
+          </button>
+        </div>
+        <MutationMessage
+          error={accommodationPlan.error || roomTypes.error || addRoom.error}
+        />
+        {selectedRoomType && (
+          <p className="px-5 pb-3 text-xs text-slate-500">
+            {selectedRoomType.name} ·{" "}
+            {t("capacity is editable for this booking")}
+          </p>
+        )}
+        <div className="divide-y">
+          {booking.room_groups.map((room) => (
+            <div
+              key={room.id}
+              className="grid gap-3 p-4 lg:grid-cols-[1fr_1fr_220px_auto] lg:items-center"
+            >
+              <div>
+                <p className="flex items-center gap-2 font-medium">
+                  <BedDouble className="size-4 text-cyan-700" />
+                  {room.label}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {room.hotel_name} · {room.room_type_name} · {room.capacity}{" "}
+                  {t("places")}
+                </p>
+              </div>
+              <div className="text-sm">
+                {room.traveler_assignments.length ? (
+                  room.traveler_assignments.map((assignment) => (
+                    <span
+                      key={assignment.id}
+                      className="mr-2 inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1"
+                    >
+                      {assignment.traveler_name}
+                      <button
+                        className="text-red-700"
+                        onClick={() =>
+                          removeRoomTraveler.mutate({
+                            roomId: room.id,
+                            assignmentId: assignment.id,
+                          })
+                        }
+                        aria-label={t("Remove traveler")}
+                      >
+                        x
+                      </button>
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-slate-500">
+                    {t("No travelers assigned yet")}
+                  </span>
+                )}
+              </div>
+              <select
+                className={field}
+                value=""
+                onChange={(event) => {
+                  if (event.target.value)
+                    assignRoomTraveler.mutate({
+                      roomId: room.id,
+                      travelerId: event.target.value,
+                    });
+                }}
+                disabled={room.traveler_assignments.length >= room.capacity}
+              >
+                <option value="">{t("Assign traveler")}</option>
+                {booking.travelers
+                  .filter(
+                    (traveler) =>
+                      !traveler.room_assignments.some(
+                        (assignment) => assignment.room_group === room.id,
+                      ),
+                  )
+                  .map((traveler) => (
+                    <option key={traveler.id} value={traveler.id}>
+                      {traveler.traveler_name}
+                    </option>
+                  ))}
+              </select>
+              <button
+                className="text-sm text-red-700"
+                onClick={() => removeRoom.mutate(room.id)}
+              >
+                {t("Remove room")}
+              </button>
+            </div>
+          ))}
+          {!booking.room_groups.length && (
+            <p className="p-5 text-sm text-slate-500">
+              {t(
+                "No rooms added yet. Add one here when the client chooses an occupancy.",
+              )}
+            </p>
+          )}
+        </div>
+      </Step>
+      <Step
+        title={t("4. Final price per traveler")}
+        hint={t(
+          "Add the final package price or detailed service lines, then apply a fixed or percentage reduction with a reason.",
+        )}
       >
         <div className="grid gap-3 p-5 lg:grid-cols-3">
           <select
@@ -732,28 +991,7 @@ export function BookingDraftWorkspace({
           </div>
         </Step>
       )}
-      <section className="flex flex-col items-start justify-between gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 sm:flex-row sm:items-center">
-        <div>
-          <p className="text-sm text-emerald-700">{t("Current group total")}</p>
-          <p className="text-2xl font-semibold text-emerald-950">
-            {booking.travelers
-              .reduce((sum, item) => sum + Number(item.final_amount), 0)
-              .toFixed(2)}{" "}
-            {booking.currency_code}
-          </p>
-          <p className="text-xs text-emerald-700">
-            {t("Commercial confirmation requires customer contact, travelers, and valid individual prices. Passports and room allocation remain in operational follow-up.")}
-          </p>
-        </div>
-        <button
-          className={primary}
-          disabled={!booking.readiness.commercial_ready || confirm.isPending}
-          onClick={() => confirm.mutate()}
-        >
-          <CheckCircle2 className="size-4" />
-          {t("Confirm and freeze")}
-        </button>
-      </section>
+      <ClientReview booking={booking} onChange={onChange} />
       <MutationMessage error={error} />
       <PassportDialog
         bookingId={booking.id}
@@ -892,7 +1130,8 @@ function TravelerRow({
         </p>
         <p className="text-xs text-slate-500">
           {t("Required until")} {traveler.passport_required_until} ·{" "}
-          {traveler.final_amount} {currency} · {t("allocation follows confirmation")}
+          {traveler.final_amount} {currency} ·{" "}
+          {t("allocation follows confirmation")}
         </p>
       </div>
       <div className="flex items-center gap-3">
@@ -901,7 +1140,9 @@ function TravelerRow({
           onClick={onPassport}
         >
           <FileScan className="size-4" />
-          {traveler.passport_id ? t("Edit passport") : t("Scan / enter passport")}
+          {traveler.passport_id
+            ? t("Edit passport")
+            : t("Scan / enter passport")}
         </button>
         <button className="text-red-700" onClick={onRemove}>
           <Trash2 className="size-4" />
@@ -985,8 +1226,12 @@ function PassportDialog({
       }
       description={
         traveler
-          ? t("Upload the passport scan and verify every legal field before saving.")
-          : t("OCR fills the identity fields first; saving creates both the traveler and passport.")
+          ? t(
+              "Upload the passport scan and verify every legal field before saving.",
+            )
+          : t(
+              "OCR fills the identity fields first; saving creates both the traveler and passport.",
+            )
       }
     >
       <form
@@ -1020,12 +1265,17 @@ function PassportDialog({
             </button>
             {parse.isSuccess && mrzWarnings.length === 0 && (
               <p className="mt-2 text-xs text-emerald-700">
-                {t("Passport number, birth date, expiry date, and the complete MRZ checksum were verified.")}
+                {t(
+                  "Passport number, birth date, expiry date, and the complete MRZ checksum were verified.",
+                )}
               </p>
             )}
             {mrzWarnings.length > 0 && (
               <p className="mt-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
-                {t("Core identity fields were verified and filled. Review these unverified fields against the passport image before saving:")} {mrzWarnings.join(t(" and "))}
+                {t(
+                  "Core identity fields were verified and filled. Review these unverified fields against the passport image before saving:",
+                )}{" "}
+                {mrzWarnings.join(t(" and "))}
               </p>
             )}
           </div>

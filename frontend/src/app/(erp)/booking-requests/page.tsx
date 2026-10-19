@@ -4,13 +4,13 @@ import { useOperationalText as useUiText } from "@/lib/i18n/operational";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { MutationMessage } from "@/components/forms/mutation-message";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthGate } from "@/features/auth/auth-gate";
 import type { Paginated } from "@/features/reference/types";
-import { apiRequest, downloadFile } from "@/lib/api/client";
+import { apiRequest, downloadFile, fetchPrivatePreview } from "@/lib/api/client";
 import { statusAr } from "@/lib/i18n/ar";
 
 type Lead = {
@@ -31,7 +31,7 @@ type Lead = {
   notes: string;
   status: string;
   booking_id?: string | null;
-  attachments: { id: string; original_filename: string; size_bytes: number }[];
+  attachments: { id: string; original_filename: string; mime_type: string; size_bytes: number }[];
   pricing_snapshot: {
     unit_prices?: Record<string, string>;
     counts?: Record<string, number>;
@@ -64,6 +64,11 @@ function Requests() {
   const router = useRouter();
   const cache = useQueryClient();
   const [page, setPage] = useState(1);
+  const [preview, setPreview] = useState<{ lead: Lead; attachment: Lead["attachments"][number] } | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useEffect(() => () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
   const leads = useQuery({
     queryKey: ["booking-requests", page],
     queryFn: () => apiRequest<Paginated<Lead>>(`/bookings/requests/?page=${page}`),
@@ -99,6 +104,18 @@ function Requests() {
         attachment.original_filename,
       ),
   });
+  const openPreview = async (lead: Lead, attachment: Lead["attachments"][number]) => {
+    try {
+      const url = await fetchPrivatePreview(`/bookings/requests/${lead.id}/attachments/${attachment.id}/preview/`);
+      setPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return url;
+      });
+      setPreview({ lead, attachment });
+    } catch (error) {
+      console.error("Could not preview private passport attachment", error);
+    }
+  };
 
   return (
     <div>
@@ -186,15 +203,21 @@ function Requests() {
                 <div className="mt-4 border-t pt-3">
                   <p className="mb-2 text-sm font-medium">{uiText("مرفقات جوازات السفر الخاصة")}</p>
                   {lead.attachments.map((attachment) => (
-                    <button
-                      key={attachment.id}
-                      disabled={download.isPending}
-                      onClick={() => download.mutate({ lead, attachment })}
-                      className="mb-2 ml-3 max-w-full break-all rounded-lg border px-3 py-2 text-sm text-cyan-800"
-                    >
-                      {uiText("تحميل")} {attachment.original_filename} (
-                      {Math.ceil(attachment.size_bytes / 1024)} KB)
-                    </button>
+                    <div key={attachment.id} className="mb-3 rounded-lg border p-3 sm:inline-flex sm:items-center sm:gap-3">
+                      {attachment.mime_type.startsWith("image/") && (
+                        <button type="button" onClick={() => openPreview(lead, attachment)} className="mb-2 flex size-24 items-center justify-center rounded bg-slate-100 text-xs text-cyan-800 sm:mb-0">
+                          {uiText("Preview image")}
+                        </button>
+                      )}
+                      <div className="min-w-0">
+                        <p className="max-w-72 break-all text-sm">{attachment.original_filename}</p>
+                        <p className="text-xs text-slate-500">{Math.ceil(attachment.size_bytes / 1024)} KB</p>
+                        <div className="mt-2 flex gap-2">
+                          {attachment.mime_type.startsWith("image/") && <button type="button" onClick={() => openPreview(lead, attachment)} className="rounded border px-3 py-1.5 text-sm text-cyan-800">{uiText("Preview")}</button>}
+                          <button type="button" disabled={download.isPending} onClick={() => download.mutate({ lead, attachment })} className="rounded border px-3 py-1.5 text-sm text-cyan-800">{uiText("Download")}</button>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -203,7 +226,22 @@ function Requests() {
         </div>
       )}
       {!leads.isPending && leads.data?.count === 0 && <p>{uiText("لا توجد طلبات حجز بعد.")}</p>}
-      <div className="mt-5 flex gap-3">
+      {preview && previewUrl && (
+        <div role="dialog" aria-modal="true" aria-label={uiText("Passport image preview")} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); setPreview(null); }}>
+          <div className="max-h-[95vh] w-full max-w-5xl rounded-xl bg-white p-4" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="truncate font-medium">{preview.attachment.original_filename}</p>
+              <div className="flex shrink-0 gap-2">
+                <button type="button" onClick={() => download.mutate({ lead: preview.lead, attachment: preview.attachment })} className="rounded border px-3 py-2 text-sm text-cyan-800">{uiText("Download")}</button>
+                <button type="button" onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); setPreview(null); }} className="rounded border px-3 py-2 text-sm">{uiText("Close")}</button>
+              </div>
+            </div>
+            <div className="flex max-h-[calc(95vh-5rem)] justify-center overflow-auto bg-slate-100 p-2">
+              <img src={previewUrl} alt={preview.attachment.original_filename} className="max-h-[calc(95vh-6rem)] max-w-full object-contain" />
+            </div>
+          </div>
+        </div>
+      )}      <div className="mt-5 flex gap-3">
         <button disabled={!leads.data?.previous} onClick={() => setPage(page - 1)}>
           {uiText("السابق")}
         </button>

@@ -1,4 +1,5 @@
 export type PassportSummary = {
+  passport_image_url: string | null;
   id: string;
   passport_number: string;
   full_name: string;
@@ -6,6 +7,7 @@ export type PassportSummary = {
   birth_date: string;
   expiry_date: string;
   nationality_code: string;
+  gender: "F" | "M" | "X";
 };
 
 export type Traveler = {
@@ -20,6 +22,9 @@ export type Traveler = {
   address: string;
   notes: string;
   branch_name: string;
+  branch: string;
+  created_at: string;
+  updated_at: string;
   current_photo: string | null;
   current_photo_url: string | null;
   current_photo_source:

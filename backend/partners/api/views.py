@@ -10,6 +10,8 @@ from partners.services import (
     assign_allocation,
     post_commission_payment,
     reverse_commission_payment,
+    reserve_customer_ticket_places,
+    reserve_ticket_places,
     transition_commission,
 )
 
@@ -87,6 +89,55 @@ class AllocationViewSet(TenantViewSet):
         queryset = super().get_queryset()
         trip_id = self.request.query_params.get("trip")
         return queryset.filter(trip_id=trip_id) if trip_id else queryset
+
+    @action(detail=False, methods=["post"], url_path="reserve-company-customer-tickets")
+    def reserve_company_customer_tickets(self, request):
+        from customers.models import Customer
+
+        customers = Customer.objects.filter(
+            agency=request.user.agency,
+            is_active=True,
+            kind=Customer.Kind.COMPANY,
+        )
+        if request.user.branch_id and not request.user.has_perm("customers.view_all_customers"):
+            customers = customers.filter(branch=request.user.branch)
+        customer_id = serializers.PrimaryKeyRelatedField(queryset=customers).run_validation(
+            request.data.get("customer")
+        )
+        trip_id = serializers.UUIDField().run_validation(request.data.get("trip"))
+        quantity = serializers.IntegerField(min_value=1).run_validation(
+            request.data.get("quantity")
+        )
+        allocation = self._command(
+            reserve_customer_ticket_places,
+            customer_id=customer_id.pk,
+            trip_id=trip_id,
+            quantity=quantity,
+            actor=request.user,
+        )
+        self._audit(
+            "ticket_places_reserved",
+            allocation,
+            {"customer_id": str(customer_id.pk), "quantity": quantity},
+        )
+        return Response(self.get_serializer(allocation).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="reserve-tickets")
+    def reserve_tickets(self, request, pk=None):
+        allocation = self.get_object()
+        if allocation.kind != PartnerAllocation.Kind.TICKETS:
+            raise serializers.ValidationError({"kind": "Select a ticket allocation."})
+        quantity = serializers.IntegerField(min_value=1).run_validation(
+            request.data.get("quantity")
+        )
+        allocation = self._command(
+            reserve_ticket_places,
+            allocation_id=allocation.pk,
+            quantity=quantity,
+            actor=request.user,
+        )
+        self._audit("ticket_places_reserved", allocation, {"quantity": quantity})
+        return Response(self.get_serializer(allocation).data)
 
     @action(detail=True, methods=["post"])
     def use(self, request, pk=None):

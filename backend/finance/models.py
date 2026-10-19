@@ -7,6 +7,102 @@ from django.db import models
 from django.db.models import F, Q
 
 
+class AirlinePricing(models.Model):
+    trip = models.OneToOneField(
+        "trips.Trip", primary_key=True, on_delete=models.CASCADE, related_name="airline_pricing"
+    )
+    rows = models.JSONField(default=list)
+    visa_price = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def quantities_from_bookings(self):
+        return self.trip.max_travelers is not None or self.trip.bookings.exists()
+
+    @property
+    def passenger_counts(self):
+        from collections import Counter
+        from bookings.models import BookingTraveler
+
+        counts = Counter()
+        for link in BookingTraveler.objects.filter(
+            booking__trip_id=self.trip_id, booking__status__in=["CONFIRMED", "COMPLETED"]
+        ).exclude(service_type="VISA_ONLY").select_related("passenger_category"):
+            code = link.passenger_category.code.upper()
+            if code != "INF" and link.seat_required is False:
+                continue
+            category = "ADULT" if code == "ADT" else code
+            if code == "INF" and link.seat_required:
+                category = "INF_SEAT"
+            counts[category] += 1
+        return counts
+
+    @property
+    def unbooked_seats(self):
+        if self.trip.max_travelers is None:
+            return 0
+        counts = self.passenger_counts
+        adjustments = sum(row["seats"] for row in self.rows if row["category"] in {
+            "FREE", "DISCOUNT_50", "DISCOUNT_60", "DISCOUNT_100"
+        })
+        return max(0, self.trip.max_travelers - counts["ADULT"] - counts["CHD"]
+                   - counts["INF_SEAT"] - adjustments)
+
+    @property
+    def effective_rows(self):
+        rows = [dict(row) for row in self.rows]
+        if not any(row["category"] == "INF_SEAT" for row in rows):
+            rows.append({"category": "INF_SEAT", "seats": 0, "price": None})
+        if self.quantities_from_bookings:
+            counts = self.passenger_counts
+            for row in rows:
+                if row["category"] in {"ADULT", "CHD", "INF", "INF_SEAT"}:
+                    row["seats"] = counts[row["category"]]
+                    if row["category"] == "ADULT":
+                        row["seats"] += self.unbooked_seats
+        return rows
+
+    @property
+    def total(self):
+        rows = self.effective_rows
+        missing = [row["category"] for row in rows if row["seats"] and row["price"] is None]
+        if missing:
+            raise ValidationError(f"Enter missing airline fares before continuing: {', '.join(missing)}.")
+        return sum((Decimal(row["price"]) * row["seats"] for row in rows
+                    if row["price"] is not None), Decimal("0"))
+
+
+class AirlineInstallment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    pricing = models.ForeignKey(
+        AirlinePricing, on_delete=models.PROTECT, related_name="installments"
+    )
+    cash_entry = models.OneToOneField("finance.AgencyCashEntry", on_delete=models.PROTECT, null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True, db_index=True)
+    scheduled_amount = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
+    scheduled_reference = models.CharField(max_length=160, blank=True)
+    scheduled_notes = models.TextField(blank=True)
+    attachment = models.FileField(upload_to="airline-installments/%Y/%m/", blank=True)
+    voided_at = models.DateTimeField(null=True, blank=True)
+    voided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="voided_airline_installments",
+    )
+    reversal_cash_entry = models.OneToOneField(
+        "finance.AgencyCashEntry",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="reversed_airline_installment",
+    )
+
+    class Meta:
+        ordering = ["cash_entry__entry_date", "cash_entry__created_at"]
+
+
 class ExchangeRate(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     agency = models.ForeignKey(
@@ -343,6 +439,8 @@ class ExpensePayment(models.Model):
 
 
 class AgencyCashEntry(models.Model):
+    reverses = models.OneToOneField("self", null=True, blank=True, on_delete=models.PROTECT, related_name="reversal")
+
     class Direction(models.TextChoices):
         IN = "IN", "Money in"
         OUT = "OUT", "Money out"

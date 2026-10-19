@@ -13,6 +13,7 @@ const tabs: Array<[TripTab, { ar: string; en: string }]> = [
   ["accommodation", { ar: "الإقامة", en: "Accommodation" }],
   ["transport", { ar: "النقل", en: "Transport" }],
   ["documents", { ar: "المستندات", en: "Documents" }],
+  ["bookings", { ar: "الحجوزات", en: "Bookings" }],
   ["commercial", { ar: "التسعير", en: "Pricing" }],
   ["closing", { ar: "الإغلاق والأرشيف", en: "Closing & archive" }],
 ];
@@ -33,7 +34,9 @@ export default function TripProfilePage() {
                   key={key}
                   onClick={() => setTab(key)}
                   className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ${
-                    tab === key ? "bg-cyan-800 text-white" : "text-slate-600 hover:bg-slate-100"
+                    tab === key
+                      ? "bg-cyan-800 text-white"
+                      : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   {label[locale]}

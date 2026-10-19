@@ -3,7 +3,7 @@ import { CircleAlert, CircleCheck, Info, TriangleAlert } from "lucide-react";
 import type { NotificationRecord } from "./types";
 
 const actionEvents = new Set([
-  "TRIP_CLOSING", "BOOKING_BALANCE", "SUPPLIER_DUE", "PASSPORT_ATTENTION",
+  "AIRLINE_DUE", "TRIP_CLOSING", "BOOKING_BALANCE", "SUPPLIER_DUE", "PASSPORT_ATTENTION",
   "ROOM_ALLOCATION", "CLOSING_OVERDUE", "BOOKING_REQUEST", "TRANSPORT_DETAILS",
 ]);
 const warningEvents = new Set(["TRIP_DEPARTURE", "BOOKING_CANCELLED"]);

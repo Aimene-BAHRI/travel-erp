@@ -65,6 +65,7 @@ class PartnerAllocation(models.Model):
     )
     kind = models.CharField(max_length=10, choices=Kind.choices)
     quantity = models.PositiveIntegerField()
+    reserved_quantity = models.PositiveIntegerField(default=0)
     notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
@@ -96,13 +97,17 @@ class PartnerAllocation(models.Model):
 
     @property
     def remaining_quantity(self):
-        return self.quantity - self.used_quantity
+        return self.quantity - self.used_quantity - self.reserved_quantity
 
     def clean(self):
         if self.partner_id and self.partner.agency_id != self.agency_id:
             raise ValidationError({"partner": "The partner must belong to the same agency."})
         if self.trip_id and self.trip.agency_id != self.agency_id:
             raise ValidationError({"trip": "The trip must belong to the same agency."})
+        if self.reserved_quantity and self.kind != self.Kind.TICKETS:
+            raise ValidationError({"reserved_quantity": "Only ticket allocations can reserve ticket places."})
+        if self.reserved_quantity > self.quantity - self.used_quantity:
+            raise ValidationError({"reserved_quantity": "Reserved ticket places cannot exceed the allocation quantity."})
 
 
 class PartnerAllocationUsage(models.Model):

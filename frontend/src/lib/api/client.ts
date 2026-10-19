@@ -87,3 +87,14 @@ export async function downloadFile(path: string, filename: string) {
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+export async function fetchPrivatePreview(path: string) {
+  let response = await fetch(`${API_URL}${path}`, { credentials: "include" });
+  if (response.status === 401 && (await refreshSession())) {
+    response = await fetch(`${API_URL}${path}`, { credentials: "include" });
+  }
+  if (!response.ok) {
+    throw new ApiError(response.status, await response.json().catch(() => null));
+  }
+  return URL.createObjectURL(await response.blob());
+}
